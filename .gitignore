@@ -58,6 +58,7 @@ desktop.ini
 
 # local-only skill with large binaries (installed separately)
 /.claude/skills/impeccable/
+/.agents/skills/impeccable/
 
 # Impeccable: screenshots, build state, mocks and caches are per-session.
 # config.json and design.json (the DESIGN.md sidecar) stay tracked.
