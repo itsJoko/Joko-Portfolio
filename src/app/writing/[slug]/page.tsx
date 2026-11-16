@@ -39,7 +39,7 @@ export default async function PostPage({ params }: Props) {
         {post.linkedin && (
           <a href={post.linkedin} target="_blank" rel="noopener noreferrer" className="link inline-flex items-center gap-1">
             First posted on LinkedIn
-            <PiArrowUpRight aria-hidden className="size-4" />
+            <PiArrowUpRight aria-hidden data-nudge="out" className="size-4" />
             <span className="sr-only"> (opens in a new tab)</span>
           </a>
         )}

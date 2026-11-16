@@ -46,7 +46,7 @@ export default function WritingPage() {
               className="btn btn-primary pressable mt-8"
             >
               Follow on LinkedIn
-              <PiArrowUpRight aria-hidden className="size-4" />
+              <PiArrowUpRight aria-hidden data-nudge="out" className="size-4" />
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import gsap from "gsap";
 
 // Only for a mouse, and never under reduced motion: touch and keyboard users keep the system cursor.
@@ -24,16 +24,35 @@ type State = "idle" | "hover" | "label" | "text" | "hidden";
  */
 export function Cursor() {
   const enabled = useSyncExternalStore(subscribe, () => window.matchMedia(QUERY).matches, () => false);
-  const ringRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const ring = ringRef.current;
-    const label = labelRef.current;
-    if (!enabled || !ring || !label) return;
+    if (!enabled) return;
+
+    // Built here rather than in JSX because it moves between parents (see `home` below),
+    // which React must not own.
+    const ring = document.createElement("div");
+    ring.className = "cursor";
+    ring.dataset.state = "hidden";
+    ring.setAttribute("aria-hidden", "true");
+    const dot = document.createElement("span");
+    dot.className = "cursor-dot";
+    const label = document.createElement("span");
+    label.className = "cursor-label";
+    ring.append(dot, label);
+    document.body.append(ring);
 
     const root = document.documentElement;
     root.classList.add("has-cursor");
+
+    // A modal dialog sits in the top layer, above any z-index. While one that keeps the cursor
+    // (data-cursor-keep) is open, the cursor lives inside it; otherwise it lives in <body>.
+    const home = () => {
+      const keep = [...document.querySelectorAll<HTMLDialogElement>("dialog[data-cursor-keep]")].find((d) => d.open);
+      const parent = keep ?? document.body;
+      if (ring.parentElement !== parent) parent.append(ring);
+    };
+    const dialogs = new MutationObserver(home);
+    dialogs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["open"] });
 
     const moveX = gsap.quickTo(ring, "x", { duration: 0.18, ease: "power3.out" });
     const moveY = gsap.quickTo(ring, "y", { duration: 0.18, ease: "power3.out" });
@@ -125,6 +144,8 @@ export function Cursor() {
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("pointerup", onUp);
     return () => {
+      dialogs.disconnect();
+      ring.remove();
       root.classList.remove("has-cursor");
       cancelAnimationFrame(scrollFrame);
       releaseMagnet();
@@ -137,12 +158,5 @@ export function Cursor() {
     };
   }, [enabled]);
 
-  if (!enabled) return null;
-
-  return (
-    <div ref={ringRef} aria-hidden data-state="hidden" className="cursor">
-      <span className="cursor-dot" />
-      <span ref={labelRef} className="cursor-label" />
-    </div>
-  );
+  return null;
 }

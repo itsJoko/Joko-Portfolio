@@ -228,6 +228,7 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
       <dialog
         ref={dialog}
         aria-labelledby="sheet-title"
+        data-cursor-keep
         className="project-sheet"
         onCancel={(e) => {
           e.preventDefault();
@@ -247,13 +248,13 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
               </p>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => step(-1)} aria-label="Previous project" className="btn pressable !p-3">
-                  <PiCaretLeft aria-hidden className="size-5" />
+                  <PiCaretLeft aria-hidden data-nudge="left" className="size-5" />
                 </button>
                 <button type="button" onClick={() => step(1)} aria-label="Next project" className="btn pressable !p-3">
-                  <PiCaretRight aria-hidden className="size-5" />
+                  <PiCaretRight aria-hidden data-nudge="right" className="size-5" />
                 </button>
                 <button type="button" data-sheet-close onClick={close} aria-label="Close" className="btn btn-primary pressable !p-3">
-                  <PiX aria-hidden className="size-5" />
+                  <PiX aria-hidden data-nudge="turn" className="size-5" />
                 </button>
               </div>
             </div>
@@ -311,7 +312,7 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
                         className={`btn pressable ${project.highlight ? "btn-primary" : ""}`}
                       >
                         {link.label}
-                        <PiArrowUpRight aria-hidden className="size-4" />
+                        <PiArrowUpRight aria-hidden data-nudge="out" className="size-4" />
                         <span className="sr-only"> (opens in a new tab)</span>
                       </a>
                     ) : (

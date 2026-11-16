@@ -1,8 +1,28 @@
-// TODO: replace with your pubmats and other graphic design work.
-// Set `image` to a /public path (1080 × 1350) once the file is there.
-export type Graphic = { title: string; kind: string; image?: string };
+// Graphic design work, grouped into collections. The data (files, sizes, alt text) is generated:
+// edit COLLECTIONS in scripts/build-graphics.mjs and run it. This file holds the types and the tabs.
 
-export const graphics: Graphic[] = Array.from({ length: 6 }, () => ({
-  title: "[Title]",
-  kind: "Pubmat",
-}));
+export type GraphicImage = { src: string; width: number; height: number; alt: string };
+
+export type GraphicSection = {
+  label?: string;
+  /** How many across in the viewer: 1 stacks full width. */
+  cols: number;
+  images: GraphicImage[];
+};
+
+export type GraphicCategory = "Branding" | "Pubmats" | "Posters" | "Print & merch" | "Infographics" | "Art";
+
+export type GraphicCollection = {
+  slug: string;
+  title: string;
+  category: GraphicCategory;
+  summary: string;
+  count: number;
+  cover: GraphicImage;
+  sections: GraphicSection[];
+};
+
+export { collections } from "./graphics.data";
+
+/** Tab order on the Graphics page; a tab only shows when it has work. */
+export const CATEGORIES: GraphicCategory[] = ["Branding", "Pubmats", "Posters", "Print & merch", "Infographics", "Art"];

@@ -192,6 +192,42 @@ html {
   color: var(--bg);
 }
 
+/* Button hover (fine pointers): the fill inverts, a primary takes the section hue, and the icon
+   moves the way the button goes. Colours ride `pressable`'s 150ms; icons 220ms ease-out. */
+.btn svg {
+  transition:
+    translate 220ms var(--ease-out),
+    rotate 220ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .btn-primary:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn:hover [data-nudge="out"] {
+    translate: 2px -2px;
+  }
+  .btn:hover [data-nudge="left"] {
+    translate: -3px 0;
+  }
+  .btn:hover [data-nudge="right"] {
+    translate: 3px 0;
+  }
+  .btn:hover [data-nudge="turn"] {
+    rotate: 90deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover svg {
+    translate: none;
+    rotate: none;
+  }
+}
+
 /* Whole-card links: a tone step on hover, the arrow nudges toward where the link goes,
    and the screenshot leans in slightly. */
 .card-link {
@@ -311,14 +347,14 @@ html {
   translate: var(--mx, 0px) var(--my, 0px);
 }
 /* A modal dialog renders in the top layer, above the custom cursor: hand back the system cursor while one is open. */
-.has-cursor:has(dialog[open]),
-.has-cursor:has(dialog[open]) * {
+.has-cursor:has(dialog[open]:not([data-cursor-keep])),
+.has-cursor:has(dialog[open]:not([data-cursor-keep])) * {
   cursor: auto !important;
 }
-.has-cursor:has(dialog[open]) :is(a, button, [role="option"]) {
+.has-cursor:has(dialog[open]:not([data-cursor-keep])) :is(a, button, [role="option"]) {
   cursor: pointer !important;
 }
-.has-cursor:has(dialog[open]) .cursor {
+.has-cursor:has(dialog[open]:not([data-cursor-keep])) .cursor {
   display: none;
 }
 
@@ -940,66 +976,71 @@ li:nth-child(even) > .cert-row {
   text-wrap: balance;
 }
 
-/* Graphics: three columns, the middle one set lower so the grid reads like a spread. */
-.graphics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2.5rem 1rem;
+/* Graphics (GraphicsShowcase.tsx): tabs with a sliding ink pill, then covers in a masonry. */
+.gx-tabs {
+  scrollbar-width: none;
 }
-@media (min-width: 64rem) {
-  .graphics-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 3.5rem 1.5rem;
-    padding-bottom: 6rem;
-  }
-  .graphics-grid > li:nth-child(3n + 2) {
-    translate: 0 6rem;
-  }
+.gx-tab {
+  color: var(--muted);
 }
-.graphic-media {
-  transition: transform 400ms var(--ease-out);
+.gx-tab[aria-pressed="true"] {
+  color: var(--bg);
 }
 @media (hover: hover) and (pointer: fine) {
-  .group:hover .graphic-media {
-    transform: scale(1.03);
+  .gx-tab[aria-pressed="false"]:hover {
+    color: var(--ink);
   }
 }
-
-/* Viewer: a full-screen dialog on the page ground; it settles in, and closes instantly. */
-.viewer {
-  width: 100vw;
-  max-width: none;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
-  border: 0;
-  background: var(--bg);
-  color: var(--ink);
-  padding: 1rem;
+.gx-masonry {
+  columns: 2;
+  column-gap: 1rem;
 }
-@media (min-width: 48rem) {
-  .viewer {
-    padding: 1.5rem 2rem;
+@media (min-width: 64rem) {
+  .gx-masonry {
+    columns: 3;
+    column-gap: 1.5rem;
   }
 }
-.viewer[open] {
-  opacity: 1;
-  transform: scale(1);
-  transition:
-    opacity 220ms var(--ease-out),
-    transform 220ms var(--ease-out);
-  @starting-style {
-    opacity: 0;
-    transform: scale(0.98);
-  }
+.gx-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 1.8vw, 1.625rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  transition: color 200ms var(--ease-out);
 }
-.viewer::backdrop {
-  background: var(--bg);
+.gx-zoom {
+  transition: transform 700ms var(--ease-out);
+}
+.gx-open:active .gx-zoom {
+  transform: scale(0.985);
+  transition-duration: 160ms;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gx-open:hover .gx-zoom {
+    transform: scale(1.04);
+  }
+  .gx-open:hover .gx-name {
+    color: var(--accent);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .viewer[open] {
-    transition-property: opacity;
+  .gx-open:hover .gx-zoom,
+  .gx-open:active .gx-zoom {
+    transform: none;
   }
+}
+/* The sheet arrives on the brand's diagonal fold: the blue panel first, the ground just behind it. */
+.gx-fold,
+.gx-ground {
+  position: fixed;
+  inset: 0;
+}
+.gx-fold {
+  background: var(--c-overview);
+}
+.gx-ground {
+  background: var(--bg);
 }
 
 /* ---- Overview sections ---- */
