@@ -18,7 +18,7 @@ export const site = {
   // Credly username: public badges are listed on Certificates automatically (refreshed daily).
   credly: "joko-comia",
   links: {
-    github: "https://github.com/Joko2005",
+    github: "https://github.com/itsJoko",
     linkedin: "https://www.linkedin.com/in/joko-comia",
   },
 } as const;
