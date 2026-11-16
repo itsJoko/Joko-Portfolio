@@ -28,7 +28,8 @@ export const projects: Project[] = [
     stack: ["React Native", "Expo", "Figma", "Machine learning"],
     highlight: true,
     media: "AVERA app screenshot (1600 × 1000)",
-    links: [{ label: "View on GitHub", href: "https://github.com/Weiasnormal/Forensic_MobileApp" }],
+    // The repo is private for now; add the link back once it is public.
+    links: [],
   },
   {
     slug: "cryolipo",

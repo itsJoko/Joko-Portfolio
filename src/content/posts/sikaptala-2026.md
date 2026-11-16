@@ -11,6 +11,10 @@ This year's competition ran under the theme "Innovation Through Accessibility: C
 
 Competing against designers from schools across the country, landing in the Top 10 felt like a real validation of the design instincts I've been building.
 
+![The SIKAPtala 2026 Web Design Competition results, ranks 4 to 10, with Comia, Joko Ymmanuel A. of Laguna State Polytechnic University in 5th](/posts/sikaptala-2026/results.webp "The results board: 5th of 106 schools")
+
+![My competition file in Figma: typography and components on the left, the storefront's mobile screens on the right](/posts/sikaptala-2026/figma-file.webp "My working file in Figma during the competition")
+
 ## What I took away from this one
 
 - **Speed matters as much as vision.** I learned to explore different UI/UX directions quickly instead of overthinking a single concept from the start, which made it easier to land on something strong within the time limit.
@@ -20,3 +24,5 @@ Competing against designers from schools across the country, landing in the Top 
 - **Design for the user, always.** No matter how good an interface looks, it only works if the person using it can actually navigate it without friction.
 
 Grateful for the chance to compete on a national stage and to keep sharpening my craft alongside so many talented designers and developers.
+
+![Certificate of Participation for Joko Ymmanuel A. Comia, Laguna State Polytechnic University SPCC, in the Web Design Competition of SIKAPtala 2026, De La Salle University–Dasmariñas, May 11–15, 2026](/posts/sikaptala-2026/certificate.webp "My certificate from SIKAPtala 2026")

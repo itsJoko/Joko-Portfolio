@@ -10,7 +10,7 @@ The shell stays quiet and black-and-white; colour is the reward for interaction 
 
 Direction dealt by design-taste-frontend: *The name as a monument* (seed 743643700), palette kept from the brand.
 
-## Color
+## Colors
 
 ### Base (both themes)
 
@@ -58,7 +58,7 @@ Rules:
 - **Content column**: fills the space beside the sidebar; its right inset matches the sidebar's left one, so the page has one pair of outer margins.
 - **Overview, top to bottom**:
   1. **Hero** (one screen from md): JOKO fitted to the text column, role and location, the statement "I design it. I build it." with one sentence and availability, the actions (See the work, CV, LinkedIn, GitHub, Email), and the 3:4 portrait at the side, vertically centred on the text. A row of four proof tiles from the CV closes the screen. On phones: JOKO, portrait beside the role, copy, actions, tiles two across, at natural height.
-  2. **Selected work**: seven project names as a compact index, about one screen, with one still beside them. Graphics and All projects link from the heading; the Playground is reached from Play words. Phones: a thumbnail in each row.
+  2. **Selected work**: project names as a compact index with one still beside them, from `src/content/work.ts` (today every project; Phase 2 curates it to AVERA, CryoLipo, OCTA Voting, ResQLine, Slip and Lotline, about one screen). Graphics and All projects link from the heading; the Playground is reached from Play words. Phones: a thumbnail in each row.
   3. **Experience**, 4. **Certificates**, 5. **Stack** (`ExperiencePreview`): three sections, each a huge title that holds its place (sticky from lg) while its details pass beside it. Only what a recruiter scans: project, role, type and dates; verifiable certificates with their badges; the main tools by group. No bands or chips.
   6. **Play words**: "I DESIGN / I CODE / I BUILD" as three display rows fitted margin to margin (`25.5cqi`), every letter loose (see Play words), plus a text link to the Playground.
   7. **Contact**: display-size rows on alternating bands (email, GitHub, LinkedIn), then "Say hello" with a round arrow.
@@ -141,7 +141,7 @@ One band per role (`surface` / `card` alternating), newest first. On wide screen
 Credly badges (public, accepted) come from Credly's public profile JSON for `site.credly`, fetched on the server and revalidated daily (`src/lib/credly.ts`), merged with any hand-added entries in `src/content/certificates.ts`, newest first. Bands like the contact rows: the badge image (64–80px) beside the title at heading size, issuer and year beneath, a round arrow at the right that turns 45° as the band inverts to `ink`; each links to the badge's public Credly page to verify it. The Overview's Experience section lists the three latest.
 
 ### Command palette (`CommandPalette`)
-Native `<dialog>` with combobox and grouped listbox (Pages, Projects, Links, Actions). Opens instantly (no animation). Round, the only shadow on the site. Project rows jump to `/projects#slug`, marked by `HashTarget`.
+Native `<dialog>` with combobox and grouped listbox (Pages, Projects, Links, Actions). Opens instantly (no animation). Round, the only shadow on the site. Project rows jump to `/projects#slug`, which opens that project's sheet (`ProjectGrid`).
 
 ### Text link (`link`)
 Underlined in `line`, `--accent` on hover. External links say "(opens in a new tab)" to screen readers; an empty href shows an `[Add link: …]` reminder.
@@ -178,4 +178,6 @@ LCP < 2.5s, INP < 200ms, CLS < 0.1. One font family. Three.js only in the hero a
 
 ## Still needed (not inventable)
 
-Project screenshots (`image` in `src/content/work.ts`), a portrait (`site.photo`), the email, project links, design tools, and the bracketed descriptions. The design inspector's picture floor (four or more real images) fails until they exist.
+- **Project links:** CryoLipo's live store (in handover) and AVERA's repo (private for now). Both show no link until then.
+- **Project videos:** a short loop and a full cut per project, from Joko (Phase 2 adds the slots).
+- **Graphics redesigns:** Joko's own versions of The Reef marks and the STRASUC awardee set; drop them into the Graphics source folder and re-run `scripts/build-graphic-covers.mjs`, then `scripts/build-graphics.mjs`.

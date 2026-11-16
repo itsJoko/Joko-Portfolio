@@ -9,6 +9,8 @@ Big milestone unlocked, and yes, this post is way overdue, but some wins are wor
 
 Out of 48+ universities nationwide, my team and I made it to the Top 12 Finalists in the Batang Techno: Building the Minds of Tomorrow's Innovators hackathon, hosted by the CICS Student Council at Batangas State University Alangilan. This was my first hackathon ever, and I'm still processing how much I learned in such a short sprint.
 
+![The Batang Techno Hackathon Challenge Top 12 Finalists board, listing ResQLine by ALGORIZZMS of LSPU San Pablo Campus among the twelve teams](/posts/batang-techno-2026/top-12.webp "The Top 12 finalists, with ResQLine among them")
+
 But what made this project meaningful wasn't just the result, it was the problem we set out to solve. Emergency reports often go into a blackhole. Without a centralized hotline or dispatcher, reports can take too long to reach the right people, making emergency situations more dangerous than they should be.
 
 Our team, ALGORIZZMS from Laguna State Polytechnic University San Pablo Campus, built ResqLine to change that: citizens report emergencies in real-time with a point-and-snap photo, an AI-powered classifier identifies the disaster type, and dispatchers get a live map dashboard to respond faster.
@@ -16,5 +18,9 @@ Our team, ALGORIZZMS from Laguna State Polytechnic University San Pablo Campus, 
 My part in the team was Web Developer and UI/UX Designer, and I also helped our team leader put together the pitch deck and documentation. A few things stuck with me: I had to get serious about managing my time between dev work and pitch prep, I learned how much a team loses when it assumes everyone's on the same page instead of checking, and watching the judges made it clear they're weighing the story and clarity just as much as the technical execution.
 
 Grateful to my ALGORIZZMS teammates for the grind, and to the organizers for building a space where student teams could compete and learn. On to the next one.
+
+![Certificate of Recognition for Joko Ymmanuel A. Comia as a Finalist in the Hackathon Challenge of Batang Techno, Batangas State University, April 10, 2026](/posts/batang-techno-2026/certificate.webp "My finalist certificate")
+
+![Certificate of Recognition for team ALGORIZZMS, Laguna State Polytechnic University San Pablo Campus, as a Finalist in the same Hackathon Challenge](/posts/batang-techno-2026/certificate-team.webp "Our team's certificate")
 
 Quick walkthrough of our system: real-time emergency reporting, AI-powered classification, and live dispatcher dashboard. [Link here](https://lnkd.in/g9nZ25gr).
