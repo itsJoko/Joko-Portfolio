@@ -923,6 +923,14 @@ li:nth-child(even) > .cert-row {
 .project-zoom {
   transition: transform 700ms var(--ease-out);
 }
+/* A project's loop sits over its still, hidden until the card is hovered and the video plays. */
+.project-loop {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.project-loop[data-on] {
+  opacity: 1;
+}
 .project-open:focus-visible {
   outline-offset: 6px;
   border-radius: 1.75rem;
@@ -976,21 +984,23 @@ li:nth-child(even) > .cert-row {
   text-wrap: balance;
 }
 
-/* Graphics (GraphicsShowcase.tsx): tabs with a sliding ink pill, then covers in a masonry. */
-.gx-tabs {
+/* Segmented control (ui/Segmented.tsx): Graphics filters and the Overview's Profile tabs. */
+.seg-track {
   scrollbar-width: none;
 }
-.gx-tab {
+.seg-tab {
   color: var(--muted);
 }
-.gx-tab[aria-pressed="true"] {
+.seg-tab[data-active="true"] {
   color: var(--bg);
 }
 @media (hover: hover) and (pointer: fine) {
-  .gx-tab[aria-pressed="false"]:hover {
+  .seg-tab[data-active="false"]:hover {
     color: var(--ink);
   }
 }
+
+/* Graphics (GraphicsShowcase.tsx): covers in a masonry. */
 .gx-masonry {
   columns: 2;
   column-gap: 1rem;
@@ -1045,6 +1055,10 @@ li:nth-child(even) > .cert-row {
 
 /* ---- Overview sections ---- */
 /* Play words: three display rows of loose letters. Sized so the longest row, I DESIGN, runs margin to margin. */
+/* The rows slide in from the sides; clip so the offset never adds sideways scroll. */
+.play-words {
+  overflow-x: clip;
+}
 .play-line {
   display: block;
   font-family: var(--font-display);
@@ -1151,6 +1165,79 @@ li:nth-child(even) > .cert-row {
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.03em;
+}
+
+/* Profile tabs (ProfileTabs.tsx): rows on alternating surface / card bands, like the contact rows. */
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem 2rem;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  transition:
+    background-color 200ms var(--ease-out),
+    color 200ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+li:nth-child(even) > .profile-row,
+.profile-row-static:nth-child(even) {
+  background: var(--card);
+}
+a.profile-row:active {
+  transform: scale(0.99);
+}
+.profile-when {
+  width: 11rem;
+  flex-shrink: 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.profile-kind {
+  flex-shrink: 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.profile-cert {
+  font-family: var(--font-display);
+  font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.profile-arrow {
+  transition: translate 200ms var(--ease-out);
+}
+@media (max-width: 47.99rem) {
+  .profile-row {
+    flex-wrap: wrap;
+    padding: 1rem 1.125rem;
+  }
+  .profile-when {
+    width: 100%;
+  }
+  .profile-kind {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  a.profile-row:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  a.profile-row:hover :is(.profile-when, .profile-kind, .text-muted) {
+    color: color-mix(in srgb, var(--bg) 65%, transparent);
+  }
+  a.profile-row:hover .profile-arrow {
+    translate: 2px -2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  a.profile-row:active,
+  a.profile-row:hover .profile-arrow {
+    transform: none;
+    translate: none;
+  }
 }
 
 /* A statement-sized paragraph. */

@@ -1,5 +1,4 @@
-// The Overview's work index: every project, plus the other two places work lives.
-// Drawn previews use these tones until real screenshots exist (set `image` to a /public path).
+// The Overview's work index and the stills every project uses, built from projects.ts.
 import { projects } from "./projects";
 
 export type WorkTone = "ink" | "overview" | "projects" | "graphics" | "playground" | "surface";
@@ -17,6 +16,8 @@ export type WorkItem = {
   image?: string;
   /** Shown instead of `image` in the dark theme. */
   imageDark?: string;
+  /** A short muted loop, played over the still where motion is welcome (see Project.video). */
+  loop?: string;
 };
 
 const tones: Record<string, WorkTone> = { avera: "ink", cryolipo: "projects", resqline: "overview", statera: "surface", workhive: "playground" };
@@ -25,30 +26,31 @@ const tones: Record<string, WorkTone> = { avera: "ink", cryolipo: "projects", re
 // When a thumbnail changes, bump STILL_VERSION and re-export: a new file name means no browser or CDN
 // can keep serving the old picture.
 const STILL_VERSION = "v2";
-const withStill = projects.map((p) => p.slug);
 const images: Record<string, Pick<WorkItem, "image" | "imageDark">> = Object.fromEntries(
-  withStill.map((slug) => [slug, { image: `/projects/${slug}-${STILL_VERSION}.webp` }])
+  projects.map((p) => [p.slug, { image: `/projects/${p.slug}-${STILL_VERSION}.webp` }]),
 );
 
+/** The Overview's Selected work, in this order. Everything else is on the Projects page. */
+export const FEATURED = ["avera", "cryolipo", "octa-voting", "resqline", "slip", "lotline"] as const;
+
+// Every project opens its own sheet on the Projects page; outside links live inside the sheet.
 export const work: WorkItem[] = [
-  ...projects.map((p) => {
-    const link = p.links[0]?.href;
-    return {
-      id: p.slug,
-      title: p.title,
-      kind: [p.kind, ...p.stack.slice(0, 1)].join(", "),
-      summary: p.summary,
-      href: link || `/projects#${p.slug}`,
-      external: Boolean(link),
-      tone: tones[p.slug] ?? "surface",
-      ...images[p.slug],
-    };
-  }),
+  ...projects.map((p) => ({
+    id: p.slug,
+    title: p.title,
+    kind: [p.kind, ...p.stack.slice(0, 1)].join(", "),
+    summary: p.summary,
+    href: `/projects#${p.slug}`,
+    external: false,
+    tone: tones[p.slug] ?? "surface",
+    loop: p.video?.loop,
+    ...images[p.slug],
+  })),
   {
     id: "graphics",
     title: "Graphics",
-    kind: "Pubmats and posters",
-    summary: "Graphic design work: pubmats and other print and social pieces.",
+    kind: "Brand identities, pubmats and posters",
+    summary: "Graphic design work: brand identities, pubmats, posters and more.",
     href: "/graphics",
     external: false,
     tone: "graphics",
@@ -63,3 +65,5 @@ export const work: WorkItem[] = [
     tone: "playground",
   },
 ];
+
+export const featuredWork: WorkItem[] = FEATURED.map((id) => work.find((w) => w.id === id)).filter((w): w is WorkItem => Boolean(w));

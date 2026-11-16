@@ -19,19 +19,28 @@ export const stack: StackGroup[] = [
     id: "frontend",
     label: "Front-end",
     items: [
-      { name: "HTML" },
-      { name: "CSS" },
+      { name: "TypeScript", featured: true },
       { name: "JavaScript" },
       { name: "React", featured: true },
-      { name: "React Native", featured: true },
       { name: "Next.js", featured: true },
-      { name: "Shopify Liquid", featured: true },
+      { name: "React Native", featured: true },
+      { name: "Tailwind CSS" },
+      { name: "HTML" },
+      { name: "CSS" },
+      { name: "GSAP" },
+      { name: "Three.js" },
+      { name: "Shopify Liquid" },
     ],
+  },
+  {
+    id: "backend",
+    label: "Back end and data",
+    items: [{ name: "Supabase", featured: true }, { name: "PostgreSQL" }, { name: "Authentication" }, { name: "Row-level security" }],
   },
   {
     id: "tools",
     label: "Code and tools",
-    items: [{ name: "Git and GitHub" }, { name: "Java" }, { name: "C#" }, { name: "C++" }],
+    items: [{ name: "Git and GitHub" }, { name: "Vitest" }, { name: "Java" }, { name: "C#" }, { name: "C++" }, { name: "Agent context files (CLAUDE.md, AGENTS.md)" }],
   },
 ];
 

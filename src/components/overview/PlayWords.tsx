@@ -43,15 +43,18 @@ export function PlayWords() {
         letter.style.color = letter.dataset.hue!;
       };
 
-      // Entrance: the letters rise into place. No mask: once thrown, a letter may go anywhere in the section.
-      gsap.from(letters, {
-        yPercent: reduce ? 0 : 60,
-        opacity: 0,
-        duration: reduce ? 0.4 : 0.9,
-        ease: "expo.out",
-        stagger: 0.03,
-        scrollTrigger: { trigger: el, start: "top 75%", once: true },
-      });
+      // Entrance: the letters are always visible; the rows slide in from alternating sides as the section
+      // scrolls up, scrubbed to the scroll and settled by the time its top reaches 30% of the view.
+      // It moves the rows, never the letters, which belong to dragging.
+      if (!reduce) {
+        gsap.utils.toArray<HTMLElement>(".play-line", el).forEach((line, i) => {
+          gsap.fromTo(
+            line,
+            { xPercent: i % 2 ? 14 : -14 },
+            { xPercent: 0, ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "top 30%", scrub: 0.6 } },
+          );
+        });
+      }
 
       const ac = new AbortController();
       const { signal } = ac;

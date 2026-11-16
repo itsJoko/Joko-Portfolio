@@ -5,7 +5,7 @@ import { Hero } from "@/components/overview/Hero";
 import { PlayWords } from "@/components/overview/PlayWords";
 import { WorkIndex } from "@/components/overview/WorkIndex";
 import { site } from "@/content/site";
-import { work } from "@/content/work";
+import { featuredWork } from "@/content/work";
 
 const contactRows = [
   ...(site.email ? [{ label: "Email", value: site.email, href: `mailto:${site.email}`, external: false }] : []),
@@ -40,8 +40,8 @@ export default function OverviewPage() {
           </p>
         </div>
         <div className="mt-6 md:mt-8">
-          {/* Graphics and the Playground have their own ways in. */}
-          <WorkIndex items={work.filter((w) => w.id !== "playground" && w.id !== "graphics")} />
+          {/* The curated six (FEATURED in content/work.ts); everything else is on Projects. */}
+          <WorkIndex items={featuredWork} />
         </div>
       </section>
 
@@ -49,13 +49,14 @@ export default function OverviewPage() {
 
       <PlayWords />
 
-      <section aria-labelledby="contact-title" className="reveal pt-24 md:pt-32">
+      {/* No entrance: the bands are there as soon as the section is. */}
+      <section aria-labelledby="contact-title" className="pt-24 md:pt-32">
         <h2 id="contact-title" className="section-title" data-split="chars">
           Contact
         </h2>
         <ul className="mt-6 flex flex-col gap-2 md:mt-8">
           {contactRows.map((row) => (
-            <li key={row.label} data-reveal>
+            <li key={row.label}>
               <a
                 href={row.href}
                 {...(row.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
@@ -67,7 +68,7 @@ export default function OverviewPage() {
               </a>
             </li>
           ))}
-          <li data-reveal>
+          <li>
             <a href={helloHref} className="contact-row contact-hello" data-cursor="Write">
               <span className="contact-value">Say hello</span>
               <span aria-hidden className="contact-arrow">

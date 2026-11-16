@@ -18,6 +18,20 @@ const CARD_SIZES = "(min-width: 768px) 45vw, 100vw";
 const SHEET_SIZES = "(min-width: 1280px) 1200px, 100vw";
 
 const stillOf = (slug: string) => work.find((w) => w.id === slug);
+
+// A card's loop plays only under a fine pointer with motion allowed; phones and reduced motion keep the still.
+const playLoop = (card: HTMLElement, on: boolean) => {
+  const v = card.querySelector<HTMLVideoElement>(".project-loop");
+  if (!v) return;
+  if (!on) {
+    v.pause();
+    v.removeAttribute("data-on");
+    return;
+  }
+  if (!window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)").matches) return;
+  v.setAttribute("data-on", "");
+  v.play().catch(() => v.removeAttribute("data-on"));
+};
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The project's thumbnail, or its drawn title card until one exists. */
@@ -201,6 +215,8 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
             <button
               type="button"
               onClick={() => open(i)}
+              onPointerEnter={(e) => playLoop(e.currentTarget, true)}
+              onPointerLeave={(e) => playLoop(e.currentTarget, false)}
               aria-haspopup="dialog"
               data-cursor="View"
               className="project-open block w-full text-left"
@@ -210,6 +226,7 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
                   <span className="project-zoom absolute inset-0 block">
                     <span className="project-settle absolute inset-0 block">
                       <Still item={stillOf(p.slug)} sizes={CARD_SIZES} className="absolute inset-0" />
+                      {p.video?.loop && <video src={p.video.loop} muted loop playsInline preload="none" aria-hidden className="project-loop absolute inset-0 size-full object-cover" />}
                     </span>
                   </span>
                 </span>
@@ -263,6 +280,18 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
               <div className="relative aspect-video overflow-hidden rounded-2xl">
                 <Still item={still} sizes={CARD_SIZES} className="absolute inset-0" />
                 <Still item={still} sizes={SHEET_SIZES} className="absolute inset-0" />
+                {project.video?.full && (
+                  <video
+                    key={project.video.full}
+                    src={project.video.full}
+                    poster={still?.image}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    aria-label={`${project.title} walkthrough video`}
+                    className="absolute inset-0 size-full bg-black object-contain"
+                  />
+                )}
               </div>
             </div>
 

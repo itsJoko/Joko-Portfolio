@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { PiCaretLeft, PiCaretRight, PiX } from "react-icons/pi";
+import { Segmented } from "@/components/ui/Segmented";
 import type { GraphicCategory, GraphicCollection } from "@/content/graphics";
 
 gsap.registerPlugin(useGSAP);
@@ -35,25 +36,12 @@ export function GraphicsShowcase({ collections, categories }: { collections: Gra
   const shown = tab === "All" ? collections : collections.filter((c) => c.category === tab);
 
   const grid = useRef<HTMLUListElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState<number | null>(null);
   const opening = useRef(false);
   const closing = useRef(false);
   const openTl = useRef<gsap.core.Timeline | gsap.core.Tween | null>(null);
   const current = index === null ? null : collections[index];
-
-  // The ink pill slides to the active tab.
-  useLayoutEffect(() => {
-    const wrap = tabsRef.current;
-    const pill = wrap?.querySelector<HTMLElement>(".gx-pill");
-    const active = wrap?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!wrap || !pill || !active) return;
-    const set = { x: active.offsetLeft, width: active.offsetWidth };
-    if (reduced() || !pill.dataset.ready) gsap.set(pill, set);
-    else gsap.to(pill, { ...set, duration: 0.35, ease: "expo.out" });
-    pill.dataset.ready = "1";
-  }, [tab]);
 
   // Covers rise in as they scroll into view, and again, quickly, whenever the tab changes.
   const firstRun = useRef(true);
@@ -166,20 +154,7 @@ export function GraphicsShowcase({ collections, categories }: { collections: Gra
 
   return (
     <>
-      <div ref={tabsRef} className="gx-tabs relative mb-10 flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-surface p-1 md:mb-14">
-        <span aria-hidden className="gx-pill absolute left-0 top-1 bottom-1 rounded-full bg-ink" />
-        {tabs.map((t) => (
-          <button
-            key={t}
-            type="button"
-            aria-pressed={t === tab}
-            onClick={() => setTab(t)}
-            className="gx-tab pressable relative z-10 shrink-0 rounded-full px-4 py-2 text-base"
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Segmented options={tabs} value={tab} onChange={setTab} label="Filter graphics by category" className="mb-10 md:mb-14" />
 
       <ul ref={grid} className="gx-masonry">
         {shown.map((c) => {

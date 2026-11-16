@@ -3,6 +3,15 @@
 
 export type ProjectLink = { label: string; href: string };
 
+/**
+ * Optional project video. Put files in public/projects/video/ and point at them here:
+ * - `loop`: 5–8 s, muted, 1280 × 720 MP4 (H.264) under ~2 MB; plays over the still on the card under
+ *   the pointer and in the Overview's Selected work. Never on phones or under reduced motion.
+ * - `full`: the walkthrough, 1920 × 1080 MP4; plays with controls in the project's sheet.
+ * Encode commands are in DESIGN.md (Projects → Video).
+ */
+export type ProjectVideo = { loop?: string; full?: string };
+
 export type Project = {
   slug: string;
   title: string;
@@ -15,6 +24,7 @@ export type Project = {
   highlight: boolean;
   media: string; // describes the placeholder until a real image is added
   links: ProjectLink[];
+  video?: ProjectVideo;
 };
 
 export const projects: Project[] = [
