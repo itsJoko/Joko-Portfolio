@@ -21,15 +21,14 @@ export type WorkItem = {
 
 const tones: Record<string, WorkTone> = { avera: "ink", cryolipo: "projects", resqline: "overview", statera: "surface", workhive: "playground" };
 
-// Placeholder stills, 1920 × 1080. A project missing here falls back to its drawn title card.
-const images: Record<string, Pick<WorkItem, "image" | "imageDark">> = {
-  avera: { image: "/projects/avera.webp" },
-  resqline: { image: "/projects/resqline.webp" },
-  statera: { image: "/projects/statera.webp" },
-  workhive: { image: "/projects/workhive.webp" },
-  sona: { image: "/projects/sona-light.webp", imageDark: "/projects/sona-dark.webp" },
-  learn: { image: "/projects/learn.webp" },
-};
+// Mockup thumbnails, 1920 × 1080 WebP. A project missing here falls back to its drawn title card.
+// When a thumbnail changes, bump STILL_VERSION and re-export: a new file name means no browser or CDN
+// can keep serving the old picture.
+const STILL_VERSION = "v2";
+const withStill = projects.map((p) => p.slug);
+const images: Record<string, Pick<WorkItem, "image" | "imageDark">> = Object.fromEntries(
+  withStill.map((slug) => [slug, { image: `/projects/${slug}-${STILL_VERSION}.webp` }])
+);
 
 export const work: WorkItem[] = [
   ...projects.map((p) => {
