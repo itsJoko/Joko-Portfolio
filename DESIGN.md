@@ -100,7 +100,7 @@ The mascot, built in code from the brand character sheet (a bevelled page with a
 Names up to 72px in tight rows, muted until active. Hover or focus activates a row: the name turns ink and leans in, and the 16:9 still travels to that row (`quickTo`, 0.7s `expo.out`) and wipes to the project in the direction the pointer moved (`clip-path`, with its image settling from `scale(1.12)`). Names rise through masks on entry, 50ms apart. A still is the project's screenshot when `image` is set in `src/content/work.ts` (`imageDark` swaps it in the dark theme), otherwise a drawn title card. Reduced motion: a fade, no travel.
 
 ### Smooth scrolling (`SmoothScroll`)
-Lenis eases wheel and trackpad scrolling (`lerp: 0.1`), run from GSAP's ticker so ScrollTrigger stays in step. Touch keeps native scrolling. Off under reduced motion, inside dialogs and over canvases, and while the phone menu or loader locks the page.
+Lenis eases wheel and trackpad scrolling (`lerp: 0.1`), run from GSAP's ticker so ScrollTrigger stays in step. Touch keeps native scrolling. Off under reduced motion, inside dialogs (native `<dialog>` and `[role="dialog"]`) and over canvases, and while the phone menu or loader locks the page.
 
 ### Contact rows
 Bands of `surface` / `card`, value at display size, left-aligned, lower part of the band. A linked row inverts to `ink` under the pointer; the round arrow turns 45°. Labels go to `aria-label`, not above the value.
@@ -111,8 +111,12 @@ The Overview's one place to play. Fine pointers grab and throw letters (GSAP Dra
 ### Page header (`PageHeader`)
 Inner pages open with the title at display size (`.page-title`, `clamp(3.5rem, 10vw, 9rem)`, letters rising in), the item count in muted display type at its top right (`aria-hidden`), and one lead line.
 
-### Projects (`ProjectRow`)
-One row per project, outcome first: kind and stack chips, the name at work-index size, summary, Role and Result, then the link (highlighted projects use `btn-primary`). The still sits right at 16:10, the work index's title card until a screenshot exists; it leans in on hover with the "View" cursor. Rows are 160px apart. `/projects#slug` marks its row in the section hue.
+### Projects (`ProjectGrid`)
+- **Grid:** two columns from md (one on phones). Each card is the 16:9 thumbnail framed in a `surface` band (12px padding, 24px outer and 16px inner radius, never cropped edge to edge), then the name (`.project-card-name`, `clamp(1.75rem, 2.6vw, 2.5rem)`) and the kind in muted. Nothing else: role, result and stack live in the sheet. Hover (fine pointers): the image leans in to 1.04 over 700ms and the name takes the section hue; press scales the frame to 0.985; the "View" cursor.
+- **Entrance:** as cards scroll in (ScrollTrigger batch, 80ms apart) the image wipes up through its frame (`clip-path`, 1.1s `expo.out`) while settling from `scale(1.12)`, and the name rises through its mask. Reduced motion: a fade.
+- **Sheet:** tapping a card opens a full-screen native `<dialog>`. The one authored moment on the page: the thumbnail flies from its card into place (FLIP with GSAP, 0.9s `expo.out`) while the `bg` ground fades up behind it, then the title (`.sheet-title`, `clamp(3rem, 7vw, 6rem)`) rises through its mask and the details follow 60ms apart. Below the framed image: title, kind and summary on seven columns; Role, Result, Built with (chips) and the link on five. A sticky bar holds "n of 13", previous, next and Close (focused on open). Arrow keys step without animating; Escape, Close or the back of the flight closes it, faster than it opened (0.55s `expo.inOut` back to its card, or a short fade when the card is off screen). Closing mid-flight lands the opening first. Reduced motion: 200ms fade in, 150ms out.
+- **Links:** `/projects#slug` opens that project's sheet (palette, Overview index), and the hash follows the open sheet. The sheet's low-resolution layer uses the card's `sizes`, so the flight starts from the picture already loaded.
+- **Thumbnails:** `public/projects/<slug>-<STILL_VERSION>.webp` (1920 × 1080); bump `STILL_VERSION` in `src/content/work.ts` when they change.
 
 ### Graphics (`GraphicsGallery`)
 4:5 pieces in three columns, the middle one set 6rem lower like a spread (two even columns on phones). A piece opens a full-screen viewer (native `<dialog>` on `bg`): title, close, the piece fitted to the height, previous / next and arrow keys. It settles in (opacity and `scale(0.98)`, 220ms, `@starting-style`) and closes instantly; stepping does not animate.

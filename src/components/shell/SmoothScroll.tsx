@@ -25,7 +25,7 @@ export function SmoothScroll() {
       anchors: true,
       allowNestedScroll: true,
       // Dialogs and the 3D scenes keep the wheel for themselves.
-      prevent: (node) => Boolean(node.closest('[role="dialog"], canvas')),
+      prevent: (node) => Boolean(node.closest('dialog, [role="dialog"], canvas')),
       // The page is locked while the phone menu or the loader is up.
       virtualScroll: () => !root.classList.contains("menu-open") && !root.classList.contains("is-loading"),
     });

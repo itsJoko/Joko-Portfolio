@@ -869,10 +869,75 @@ li:nth-child(even) > .cert-row {
 }
 
 /* Projects: the still leans in under the pointer, like the work cards. */
+/* Projects grid (ProjectGrid.tsx): framed thumbnails, name and kind only. */
+.project-card-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.6vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  transition: color 200ms var(--ease-out);
+}
+.project-frame {
+  transition: transform 160ms var(--ease-out);
+}
+.project-open:active .project-frame {
+  transform: scale(0.985);
+}
+.project-zoom {
+  transition: transform 700ms var(--ease-out);
+}
+.project-open:focus-visible {
+  outline-offset: 6px;
+  border-radius: 1.75rem;
+}
 @media (hover: hover) and (pointer: fine) {
-  .project-still:hover .card-media {
-    transform: scale(1.015);
+  .project-open:hover .project-zoom {
+    transform: scale(1.04);
   }
+  .project-open:hover .project-card-name {
+    color: var(--accent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-open:active .project-frame,
+  .project-open:hover .project-zoom {
+    transform: none;
+  }
+}
+
+/* Project sheet: a full-screen native dialog. The ground is its own layer so the thumbnail can fly
+   in over the page while the ground fades up behind it. */
+.project-sheet {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.project-sheet::backdrop {
+  background: transparent;
+}
+.sheet-ground {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+}
+.sheet-title {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
 /* Graphics: three columns, the middle one set lower so the grid reads like a spread. */
