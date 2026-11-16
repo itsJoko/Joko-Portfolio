@@ -16,7 +16,7 @@ export const site = {
   // One-page CV PDF; replace the file to update it.
   cv: "/joko-comia-cv.pdf",
   // Credly username: public badges are listed on Certificates automatically (refreshed daily).
-  credly: "joko-ymmanuel-comia",
+  credly: "joko-comia",
   links: {
     github: "https://github.com/Joko2005",
     linkedin: "https://www.linkedin.com/in/joko-comia",

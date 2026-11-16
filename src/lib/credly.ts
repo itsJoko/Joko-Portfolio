@@ -48,8 +48,13 @@ export async function getCredlyBadges(): Promise<Certificate[]> {
     }));
 }
 
-/** Credly badges and hand-added certificates together, newest first. */
+/**
+ * Credly badges and hand-added certificates together, newest first.
+ * A hand-added entry wins over a Credly badge with the same title, so nothing shows twice.
+ */
 export async function getAllCertificates(manual: Certificate[]): Promise<Certificate[]> {
-  const credly = await getCredlyBadges();
+  const key = (c: Certificate) => c.title.trim().toLowerCase();
+  const manualTitles = new Set(manual.map(key));
+  const credly = (await getCredlyBadges()).filter((c) => !manualTitles.has(key(c)));
   return [...credly, ...manual].sort((a, b) => (b.date ?? b.year).localeCompare(a.date ?? a.year));
 }

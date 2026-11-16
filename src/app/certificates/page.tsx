@@ -17,7 +17,7 @@ export default async function CertificatesPage() {
     <>
       <PageHeader
         title="Certificates"
-        lead="Courses and trainings I've completed, verified on Credly."
+        lead="Certifications, courses and trainings I've completed. Open any row to see or verify the certificate."
         count={certificates.length || undefined}
       />
 
@@ -28,7 +28,15 @@ export default async function CertificatesPage() {
               <>
                 <span className="flex min-w-0 items-center gap-5">
                   {c.image && (
-                    <Image src={c.image} alt="" width={96} height={96} className="size-16 shrink-0 md:size-20" />
+                    // Certificates are landscape or portrait pages, badges are square: keep each one's shape.
+                    <Image
+                      src={c.image}
+                      alt=""
+                      width={128}
+                      height={96}
+                      sizes="112px"
+                      className="h-16 w-auto max-w-28 shrink-0 rounded-sm object-contain md:h-20"
+                    />
                   )}
                   <span className="min-w-0">
                     <span className="cert-title">{c.title}</span>
