@@ -68,6 +68,9 @@ export function Hero({ name, role }: { name: string; role: string }) {
             <a href="#work" className="btn btn-primary pressable">
               See the work
             </a>
+            <Link href="/brief" className="btn pressable">
+              1-minute brief
+            </Link>
             <CvLink className="btn pressable" />
             <SocialButtons className="ml-1" />
           </div>

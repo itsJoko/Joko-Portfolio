@@ -1819,6 +1819,8 @@ li:nth-child(even) > .contact-row {
 .nav-live {
   position: relative;
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap; /* "1 here" never breaks onto two lines in a narrow sidebar */
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -2054,3 +2056,287 @@ li:nth-child(even) > .contact-row {
     }
   }
 }
+
+/* Certificate badges: every issuer's artwork in the same tile, black and white until the pointer
+   reaches its row or card. Shared by the Certificates page and the Overview. */
+.cert-badge {
+  display: block;
+  flex-shrink: 0;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--bg);
+  padding: 0.5rem;
+}
+.cert-badge-lg {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 1.25rem;
+  padding: 0.625rem;
+}
+@media (min-width: 48rem) {
+  .cert-badge:not(.cert-badge-lg) {
+    width: 5rem;
+    height: 5rem;
+  }
+}
+.cert-badge img {
+  filter: grayscale(1) contrast(1.05);
+  transition: filter 300ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(a.cert-row, a.cert-card, a.cert-mini):hover .cert-badge img {
+    filter: none;
+  }
+}
+/* Featured: three tall cards that invert under the pointer, like the rows. */
+.cert-card {
+  display: flex;
+  height: 100%;
+  min-height: 20rem;
+  flex-direction: column;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1.5rem;
+  transition:
+    background-color 200ms var(--ease-out),
+    color 200ms var(--ease-out);
+}
+.cert-card-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.cert-card:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  a.cert-card:hover .text-muted {
+    color: color-mix(in srgb, var(--bg) 65%, var(--ink));
+  }
+}
+
+/* ---- Brief (/brief): a quiet résumé page. Label column + content, bands for cards. ---- */
+.brief-hero {
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1.5rem;
+}
+.brief-section {
+  display: grid;
+  gap: 1rem;
+  padding-block: 2.5rem;
+}
+@media (min-width: 64rem) {
+  .brief-section {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 2.5rem;
+    padding-block: 3.5rem;
+  }
+}
+.brief-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.brief-card {
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+}
+.brief-card-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.brief-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  transition:
+    background-color 200ms var(--ease-out),
+    color 200ms var(--ease-out);
+}
+.brief-arrow {
+  transition: translate 220ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .brief-row:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .brief-row:hover .text-muted {
+    color: color-mix(in srgb, var(--bg) 65%, var(--ink));
+  }
+  .brief-row:hover .brief-arrow {
+    translate: 2px -2px;
+  }
+}
+.brief-facts {
+  display: grid;
+  gap: 1rem;
+}
+.brief-facts > div {
+  display: grid;
+  gap: 0.125rem;
+}
+@media (min-width: 48rem) {
+  .brief-facts > div {
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
+.brief-facts dt {
+  color: var(--muted);
+}
+/* Switching the view: a plain fade, nothing moves. */
+.brief-swap {
+  animation: brief-swap 200ms var(--ease-out);
+}
+@keyframes brief-swap {
+  from { opacity: 0; }
+}
+
+/* ---- Print: the page without the shell, black on white (used by the Brief's Print button). ---- */
+@media print {
+  aside,
+  .mobile-header,
+  footer,
+  .cursor,
+  [data-print-hide],
+  .fixed {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .page-title {
+    font-size: 3rem;
+  }
+  .brief-hero,
+  .brief-card,
+  .brief-row {
+    background: none !important;
+    padding-inline: 0;
+  }
+  .brief-section {
+    break-inside: avoid;
+    padding-block: 1rem;
+  }
+  .text-muted {
+    color: #555 !important;
+  }
+}
+
+/* ---- Certificate badges drawn in code (CertBadge): a type-specimen card ----
+   Issuer on top, initials in Funnel Display, the JC fold cut into the top-right corner, and a
+   ruler of the twelve months with the month it was earned marked in the section hue. Sized with
+   container units so one design works from 56px to 112px. */
+.cert-spec {
+  /* The fold in %, the padding on .cert-spec-inner in cqi: on the container itself, cqi would
+     measure an outer element and % padding would follow the parent's width. */
+  --fold: 24%;
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  container-type: inline-size;
+  border-radius: 1rem;
+  background: var(--bg);
+  color: var(--ink);
+  /* The corner is cut away; the flap below sits in the cut, like the brand's fold. */
+  clip-path: polygon(0 0, calc(100% - var(--fold)) 0, 100% var(--fold), 100% 100%, 0 100%);
+}
+.cert-spec-sm {
+  width: 3.5rem;
+  border-radius: 0.75rem;
+}
+.cert-spec-lg {
+  width: 7rem;
+  border-radius: 1.25rem;
+}
+@media (min-width: 48rem) {
+  .cert-spec-md {
+    width: 5rem;
+  }
+}
+.cert-spec-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 11cqi 11cqi 10cqi;
+}
+.cert-spec-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--fold);
+  height: var(--fold);
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+.cert-spec-issuer {
+  /* Stays clear of the corner fold. */
+  max-width: calc(100% - 14cqi);
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11cqi;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.cert-spec-initials {
+  margin-top: auto;
+  font-family: var(--font-display);
+  font-size: 40cqi;
+  font-weight: 600;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+}
+.cert-spec-ruler {
+  display: flex;
+  height: 9cqi;
+  margin-top: 8cqi;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.cert-spec-ruler > span {
+  width: max(1px, 1.4cqi);
+  height: 40%;
+  border-radius: 1px;
+  background: var(--muted);
+  opacity: 0.55;
+}
+.cert-spec-ruler > .is-quarter {
+  height: 70%;
+}
+.cert-spec-ruler > .is-month {
+  width: max(2px, 2.4cqi);
+  height: 100%;
+  background: var(--accent);
+  opacity: 1;
+}
+
+
+

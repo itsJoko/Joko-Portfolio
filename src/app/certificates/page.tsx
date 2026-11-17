@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import { PiArrowUpRight } from "react-icons/pi";
+import { CertificateShelf } from "@/components/certificates/CertificateShelf";
 import { PageHeader } from "@/components/ui";
 import { realCertificates } from "@/content/certificates";
 import { getAllCertificates } from "@/lib/credly";
@@ -17,59 +16,14 @@ export default async function CertificatesPage() {
     <>
       <PageHeader
         title="Certificates"
-        lead="Certifications, courses and trainings I've completed. Open any row to see or verify the certificate."
+        lead="Certifications, courses and trainings. Open one to verify it."
         count={certificates.length || undefined}
       />
 
       {certificates.length ? (
-        <ul className="reveal flex flex-col gap-2">
-          {certificates.map((c) => {
-            const body = (
-              <>
-                <span className="flex min-w-0 items-center gap-5">
-                  {c.image && (
-                    // Certificates are landscape or portrait pages, badges are square: keep each one's shape.
-                    <Image
-                      src={c.image}
-                      alt=""
-                      width={128}
-                      height={96}
-                      sizes="112px"
-                      className="h-16 w-auto max-w-28 shrink-0 rounded-sm object-contain md:h-20"
-                    />
-                  )}
-                  <span className="min-w-0">
-                    <span className="cert-title">{c.title}</span>
-                    <span className="mt-2 block text-base text-muted">
-                      {c.issuer}, {c.year}
-                    </span>
-                  </span>
-                </span>
-                {c.href ? (
-                  <span aria-hidden className="cert-arrow">
-                    <PiArrowUpRight />
-                  </span>
-                ) : (
-                  <span className="shrink-0 text-sm text-muted">[Add link]</span>
-                )}
-              </>
-            );
-            return (
-              <li key={`${c.title}-${c.date ?? c.year}`} data-reveal>
-                {c.href ? (
-                  <a href={c.href} target="_blank" rel="noopener noreferrer" className="cert-row">
-                    {body}
-                    <span className="sr-only"> (verify, opens in a new tab)</span>
-                  </a>
-                ) : (
-                  <div className="cert-row">{body}</div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <CertificateShelf certificates={certificates} />
       ) : (
-        <p className="reveal about-text text-muted">Certificates are loading from Credly. Check back shortly.</p>
+        <p className="about-text text-muted">Certificates are loading from Credly. Check back shortly.</p>
       )}
     </>
   );

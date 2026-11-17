@@ -19,7 +19,7 @@ Success: within about 30 seconds a reviewer understands that Joko is a designer 
 
 ## Positioning
 
-UI/UX designer / design engineer: creates striking visual design, reads code, and cares about code structure. One-line message: **a designer who builds what he designs.**
+UI/UX designer and Frontend developer: creates striking visual design, reads code, and cares about code structure. One-line message: **a designer who builds what he designs.**
 
 Personality: composed and minimalist on the outside, playful and creative on the inside.
 

@@ -11,7 +11,7 @@ import { ProfileTabs } from "./ProfileTabs";
  */
 export async function ExperiencePreview() {
   const roles = experience.map((e) => ({ short: e.short, role: e.role, kind: e.kind, when: `${e.start} – ${e.end || "Present"}` }));
-  const certs = (await getAllCertificates(realCertificates)).slice(0, 6).map(({ title, issuer, year, href, image }) => ({ title, issuer, year, href, image }));
+  const certs = (await getAllCertificates(realCertificates)).slice(0, 6).map(({ title, issuer, year, href, date }) => ({ title, issuer, year, href, date }));
   const tools = stack
     .map((g) => ({ label: g.label, names: g.items.filter((i) => i.featured).map((i) => i.name) }))
     .filter((g) => g.names.length > 0);

@@ -1,14 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { PiArrowRight, PiArrowUpRight } from "react-icons/pi";
+import { CertBadge } from "@/components/certificates/CertBadge";
 import { Segmented, segmentedIds } from "@/components/ui/Segmented";
 
 export type ProfileRole = { short: string; role: string; kind: string; when: string };
-export type ProfileCert = { title: string; issuer: string; year: string; href: string; image?: string };
+export type ProfileCert = { title: string; issuer: string; year: string; href: string; date?: string };
 export type ProfileTools = { label: string; names: string[] };
 
 const TABS = ["Experience", "Certificates", "Stack"] as const;
@@ -71,8 +71,8 @@ export function ProfileTabs({ roles, certs, tools }: { roles: ProfileRole[]; cer
           <ul className="grid gap-2 md:grid-cols-2">
             {certs.map((c) => (
               <li key={c.title} data-row>
-                <a href={c.href} target="_blank" rel="noopener noreferrer" className="profile-row">
-                  {c.image && <Image src={c.image} alt="" width={64} height={64} className="size-14 shrink-0 object-contain md:size-16" />}
+                <a href={c.href} target="_blank" rel="noopener noreferrer" className="profile-row cert-mini">
+                  <CertBadge c={c} size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="profile-cert block">{c.title}</span>
                     <span className="mt-1 block text-sm text-muted">

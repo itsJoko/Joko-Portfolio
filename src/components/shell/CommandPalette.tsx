@@ -61,6 +61,14 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     const isDark = resolvedTheme === "dark";
     const list: Command[] = [
       ...NAV.map((n) => ({ id: `page-${n.id}`, group: "Pages" as const, label: n.label, section: n.id, run: go(n.href) })),
+      {
+        id: "page-brief",
+        group: "Pages",
+        label: "Brief",
+        hint: "The one-minute version, for recruiters, managers and clients",
+        keywords: "summary resume cv recruiter hire freelance",
+        run: go("/brief"),
+      },
       ...projects.map((p) => ({
         id: `project-${p.slug}`,
         group: "Projects" as const,

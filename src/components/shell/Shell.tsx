@@ -45,7 +45,8 @@ function NavList({ id, pathname, onNavigate, online }: { id: string; pathname: s
           </p>
           <ul aria-labelledby={`${id}-${group}`} className="flex flex-col gap-0.5">
             {NAV.filter((item) => item.group === group).map(({ id, label, href, icon: Icon }) => {
-              const active = id === current;
+              // Overview is only active on "/" itself, so pages outside the nav (the Brief) mark nothing.
+              const active = id === current && (href !== "/" || pathname === "/");
               return (
                 <li key={id} style={{ "--i": NAV.findIndex((n) => n.id === id) } as React.CSSProperties}>
                   <Link
@@ -194,3 +195,4 @@ export function Shell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

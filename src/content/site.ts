@@ -5,7 +5,7 @@ export const site = {
   // The name as the brand sets it beside the JC mark.
   brandName: "Joko Comia",
   location: "San Pablo City, Laguna",
-  role: "UI/UX designer and design engineer",
+  role: "UI/UX designer and Frontend developer",
   roles: ["UI/UX designer", "Design engineer"],
   statement: "A designer who builds what he designs.",
   intro:

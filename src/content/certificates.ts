@@ -34,3 +34,23 @@ export const certificates: Certificate[] = [
 
 /** Hand-added certificates with real details; placeholders never reach the page. */
 export const realCertificates = certificates.filter((c) => !c.title.startsWith("["));
+
+// ---- Grouping for the Certificates page ----
+
+export const CERT_FIELDS = ["Design & product", "Development", "AI, data & cloud", "Other"] as const;
+export type CertField = (typeof CERT_FIELDS)[number];
+
+/**
+ * The field a certificate belongs to, from its title. Credly badges arrive on their own, so this
+ * sorts new ones too; anything unmatched lands in "Other".
+ */
+export function certField(title: string): CertField {
+  const t = title.toLowerCase();
+  if (/\b(ux|ui|user experience|design|figma|project management|agile|scrum|product)\b/.test(t)) return "Design & product";
+  if (/\b(ai|artificial intelligence|machine learning|data|cloud|aws|azure)\b/.test(t)) return "AI, data & cloud";
+  if (/(javascript|typescript|python|\bjava\b|c\+\+|programming|software|\bweb\b|topcit|operating system|network|linux|developer)/.test(t)) return "Development";
+  return "Other";
+}
+
+/** Shown first, larger: the ones that matter most for UI/UX and front-end work. Matched by title. */
+export const FEATURED_CERTS = ["TOPCIT, Level 3", "IT Specialist - Artificial Intelligence", "User Experience Design Fundamentals"];

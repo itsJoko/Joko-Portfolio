@@ -12,10 +12,11 @@ export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="@container mx-3 mb-3 grid overflow-clip min-h-[80svh] grid-rows-[auto_1fr_auto] rounded-[2rem] bg-ink px-5 pb-5 pt-8 text-bg md:mx-4 md:mb-4 md:px-10 md:pt-10">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-8 text-base md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-8 text-base md:grid-cols-[1.5fr_1fr_1fr_1.2fr]">
         <div>
           <p className="font-medium">Pages</p>
-          <ul className="mt-2 flex flex-col gap-1">
+          {/* Two columns: nine pages in one would be the longest list in the footer. */}
+          <ul className="mt-2 columns-2 gap-x-6 [&>li]:mb-1">
             {NAV.map((n) => (
               <li key={n.id}>
                 <Link href={n.href}>
@@ -45,6 +46,9 @@ export function Footer() {
           <p className="mt-1">
             <CvLink label="CV" className="inline-flex items-center gap-1.5" />
           </p>
+          <p className="mt-1">
+            <Link href="/brief">1-minute brief</Link>
+          </p>
         </div>
         <div>
           <p className="font-medium">Colophon</p>
@@ -63,3 +67,4 @@ export function Footer() {
     </footer>
   );
 }
+
