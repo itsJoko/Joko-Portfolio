@@ -20,7 +20,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
 
   // The entrance is CSS (globals.css, "Hero entrance"), so it starts with the first paint.
   return (
-    <section aria-labelledby="hero-title" className="-mt-10 flex flex-col gap-6 pt-2 md:-mt-16 md:min-h-svh md:gap-5 md:py-5">
+    <section aria-labelledby="hero-title" className="-mt-10 flex flex-col gap-10 pt-2 md:-mt-16 md:min-h-svh md:gap-12 md:py-6">
       <div className="hero-grid md:flex-1">
         <h1 id="hero-title" className="hero-name">
           {/* Body size, so this hidden line doesn't stretch the heading's text box to the monument's width. */}
@@ -58,10 +58,10 @@ export function Hero({ name, role }: { name: string; role: string }) {
           <p className="text-base leading-snug text-muted md:text-lg">{site.location}</p>
         </div>
 
-        <div className="hero-copy flex flex-col gap-5">
+        <div className="hero-copy flex flex-col gap-8">
           <div className="hero-fade" style={{ "--i": 2 } as React.CSSProperties}>
             <p className="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">I design it. I build it.</p>
-            <p className="mt-2 text-base text-muted">Open to OJT and freelance work.</p>
+            <p className="mt-3 text-base text-muted">Open to OJT and freelance work.</p>
           </div>
           {/* The first things a reviewer reaches for: the work, the CV, and a way to get in touch. */}
           <div className="hero-fade hero-actions flex flex-wrap items-center gap-2" style={{ "--i": 3 } as React.CSSProperties}>

@@ -64,7 +64,7 @@ Rules:
   6. **Play words**: "I DESIGN / I CODE / I BUILD" as three display rows fitted margin to margin (`25.5cqi`), every letter loose (see Play words), plus text links to the Playground and to Community ("N designing a poster now" while anyone is there, otherwise "Design a poster together").
   7. **Contact**: display-size rows on alternating bands (email, GitHub, LinkedIn), then "Say hello" with a round arrow.
   8. **Footer** (every page): inverted. Desktop: "Get in touch" with the email at heading size, then CV · 1-minute brief · LinkedIn · GitHub on one line, and the pages in a 3 × 3 grid beside it (stacked under it on tablets). Phones: Contact (open), Pages and Colophon as tap-to-open bands (`FooterFold`: a button with aria-expanded and a region; the height eases open through grid-rows 0fr → 1fr in 260ms while the contents fade in, and closes in 200ms; the caret turns 180°; reduced motion snaps). JOKO fitted margin to margin, the copyright with the colophon on one quiet line beside it.
-- Sections are 128–160px apart on desktop; each opens with a heading, with its "see everything" link beside or under it.
+- Rhythm: tight inside a group (8–20px), generous between groups (40–56px), and very generous between sections: 112px on phones, 176px from md, 208px from xl. Each section opens with a heading, with its "see everything" link beside or under it, and 48–56px before its content. The hero keeps name and role together, then pauses before the statement and again before the actions; the proof tiles sit 48px off the hero copy.
 
 ## Components
 

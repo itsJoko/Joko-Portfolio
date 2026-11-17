@@ -41,7 +41,7 @@ export function ProfileTabs({ roles, certs, tools }: { roles: ProfileRole[]; cer
   const more = { Experience: ["/experience", "Full history"], Certificates: ["/certificates", "All certificates"], Stack: ["/stack", "All tools"] }[tab];
 
   return (
-    <section aria-labelledby="profile-title" className="reveal pt-24 md:pt-32">
+    <section aria-labelledby="profile-title" className="reveal pt-28 md:pt-44 xl:pt-52">
       <div className="section-head">
         <h2 id="profile-title" className="section-title" data-split="chars">
           Profile
@@ -49,7 +49,7 @@ export function ProfileTabs({ roles, certs, tools }: { roles: ProfileRole[]; cer
         <Segmented options={TABS} value={tab} onChange={setTab} label="Profile" mode="tabs" idBase={ID} />
       </div>
 
-      <div ref={panel} role="tabpanel" id={ids.panel} aria-labelledby={ids.tab} tabIndex={0} className="mt-8 md:mt-10">
+      <div ref={panel} role="tabpanel" id={ids.panel} aria-labelledby={ids.tab} tabIndex={0} className="mt-8 md:mt-14">
         {tab === "Experience" && (
           <ol className="flex flex-col gap-2">
             {roles.map((r) => (
@@ -98,7 +98,7 @@ export function ProfileTabs({ roles, certs, tools }: { roles: ProfileRole[]; cer
           </dl>
         )}
 
-        <Link href={more[0]} className="btn pressable mt-8">
+        <Link href={more[0]} className="btn pressable mt-10">
           {more[1]}
           <PiArrowRight aria-hidden data-nudge="right" className="size-4" />
         </Link>

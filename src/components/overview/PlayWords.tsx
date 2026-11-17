@@ -169,7 +169,7 @@ export function PlayWords() {
   );
 
   return (
-    <section ref={root} aria-labelledby="play-title" className="play-words relative pt-24 md:pt-32">
+    <section ref={root} aria-labelledby="play-title" className="play-words relative pt-28 md:pt-44 xl:pt-52">
       <h2 id="play-title" className="@container">
         <span className="sr-only">I design. I code. I build.</span>
         {LINES.map((line) => (
@@ -186,7 +186,7 @@ export function PlayWords() {
           </span>
         ))}
       </h2>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 md:mt-14">
         <p className="text-base text-muted">
           <span className="play-hint-fine">Throw the letters.</span>
           <span className="play-hint-touch">Tap a letter.</span>{" "}

@@ -550,7 +550,7 @@ html {
     "photo role"
     "copy copy";
   align-items: center;
-  gap: 1.25rem 1rem;
+  gap: 1.5rem 1rem;
 }
 .hero-name {
   grid-area: name;
@@ -583,11 +583,15 @@ html {
       "role photo"
       "copy photo"
       ". photo";
+    /* Name and role sit together; the copy gets its own pause (margin below). */
     gap: 1rem 3rem;
+  }
+  .hero-copy {
+    margin-top: 1.5rem;
   }
   .hero-grid > * {
     /* As tall as the screen leaves room for, without crowding the text on narrow windows. */
-    --hero-photo: min(40cqi, calc((100svh - 11rem) * 0.75));
+    --hero-photo: min(40cqi, calc((100svh - 14rem) * 0.75));
   }
   .hero-photo {
     width: var(--hero-photo);
@@ -2540,6 +2544,8 @@ li:nth-child(even) > .contact-row {
     transition: none !important;
   }
 }
+
+
 
 
 

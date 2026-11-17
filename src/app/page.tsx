@@ -25,7 +25,7 @@ export default function OverviewPage() {
     <div className="flex flex-col">
       <Hero name={site.name} role={site.role} />
 
-      <section id="work" aria-labelledby="work-title" className="reveal scroll-mt-8 pt-16 md:pt-24">
+      <section id="work" aria-labelledby="work-title" className="reveal scroll-mt-8 pt-24 md:pt-36 xl:pt-44">
         <div className="section-head">
           <h2 id="work-title" className="section-title" data-split="chars">
             Selected work
@@ -39,7 +39,7 @@ export default function OverviewPage() {
             </Link>
           </p>
         </div>
-        <div className="mt-6 md:mt-8">
+        <div className="mt-8 md:mt-12">
           {/* The curated six (FEATURED in content/work.ts); everything else is on Projects. */}
           <WorkIndex items={featuredWork} />
         </div>
@@ -50,7 +50,7 @@ export default function OverviewPage() {
       <PlayWords />
 
       {/* No entrance: the bands are there as soon as the section is. */}
-      <section aria-labelledby="contact-title" className="pt-24 md:pt-32">
+      <section aria-labelledby="contact-title" className="pt-28 md:pt-44 xl:pt-52">
         <h2 id="contact-title" className="section-title" data-split="chars">
           Contact
         </h2>
