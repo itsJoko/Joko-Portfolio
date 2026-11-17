@@ -1970,3 +1970,87 @@ li:nth-child(even) > .contact-row {
   }
 }
 
+
+/* Folio's speech bubble: opens above Folio, growing from its corner (180ms ease-out). */
+.folio-menu {
+  position: absolute;
+  right: 0.25rem;
+  bottom: calc(100% + 0.25rem);
+  width: 15rem;
+  border-radius: 1.5rem;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0.5rem;
+  transform-origin: 85% 100%;
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+}
+/* The tail, pointing down at Folio. */
+.folio-menu::after {
+  content: "";
+  position: absolute;
+  right: 3.25rem;
+  bottom: -0.4rem;
+  width: 1rem;
+  height: 1rem;
+  background: inherit;
+  border-radius: 0 0 0.25rem 0;
+  rotate: 45deg;
+}
+.folio-menu-title {
+  padding: 0.5rem 0.75rem 0.375rem;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.folio-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 9999px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+}
+.folio-item:focus-visible {
+  outline-color: var(--bg);
+  outline-offset: -2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .folio-item:hover {
+    background: color-mix(in oklab, var(--bg) 16%, transparent);
+  }
+}
+.folio-live {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+/* Folio's keyboard button: invisible and click-through until focused, then a ring around Folio. */
+.folio-toggle {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  pointer-events: none;
+}
+.folio-toggle:not(:focus-visible) {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio-menu {
+    @starting-style {
+      transform: none;
+    }
+  }
+}

@@ -8,6 +8,12 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 export type FolioSceneProps = {
   reducedMotion: boolean;
   ink: string;
+  /** Solid (the build) or blueprint outline (the design). */
+  built?: boolean;
+  /** Its menu is open: Folio keeps waving at you. */
+  attentive?: boolean;
+  /** Folio was clicked (it hops and turns either way). */
+  onTap?: () => void;
 };
 
 const damp = THREE.MathUtils.damp;
@@ -129,7 +135,7 @@ const POSES = {
 const WAVE_MS = 2200;
 const HOP_MS = 800;
 
-function Folio({ reducedMotion, ink }: FolioSceneProps) {
+function Folio({ reducedMotion, ink, built = true, attentive = false, onTap }: FolioSceneProps) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
@@ -139,8 +145,6 @@ function Folio({ reducedMotion, ink }: FolioSceneProps) {
   const eyes = useRef<THREE.Group>(null);
   const invalidate = useThree((s) => s.invalidate);
   const [hovered, setHovered] = useState(false);
-  // The hidden mechanic: a click flips Folio between the build (solid) and the design (blueprint).
-  const [built, setBuilt] = useState(true);
 
   const parts = useMemo(() => {
     const page = pageShape();
@@ -273,13 +277,19 @@ function Folio({ reducedMotion, ink }: FolioSceneProps) {
     return () => cancelAnimationFrame(frame);
   }, [invalidate, reducedMotion]);
 
+  // Flipped or menu opened from outside the canvas: wake the render loop so it shows.
+  useEffect(() => {
+    settled.current = false;
+    invalidate();
+  }, [built, attentive, invalidate]);
+
   useFrame(({ clock }, delta) => {
     if (!root.current || !body.current) return;
     const st = s.current;
     const dt = Math.min(delta, 1 / 30);
     const t = clock.elapsedTime;
     const now = performance.now();
-    const waving = !reducedMotion && (hovered || now < st.waveUntil);
+    const waving = !reducedMotion && (hovered || attentive || now < st.waveUntil);
     const hopping = now < st.hopUntil;
     const target: Pose = hopping ? POSES.success : waving ? POSES.welcome : built ? POSES.rest : POSES.think;
 
@@ -342,12 +352,9 @@ function Folio({ reducedMotion, ink }: FolioSceneProps) {
       }}
       onClick={(e) => {
         e.stopPropagation();
-        if (reducedMotion) {
-          setBuilt((b) => !b);
-          return;
-        }
-        // A happy hop and a full turn, landing as the other half of "I design it. I build it."
-        setBuilt((b) => !b);
+        onTap?.();
+        if (reducedMotion) return;
+        // A happy hop and a full turn.
         s.current.hopUntil = performance.now() + HOP_MS;
         s.current.spinTarget += Math.PI * 2;
       }}
