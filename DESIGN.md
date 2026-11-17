@@ -35,6 +35,7 @@ Direction dealt by design-taste-frontend: *The name as a monument* (seed 7436437
 | Stack | `#BE123C` rose | `#FF7A93` |
 | Writing | `#0F766E` teal | `#2DD4BF` |
 | Playground | `#A64B00` amber | `#FFB547` |
+| Community | `#A21CAF` magenta | `#F08CFF` |
 
 Rules:
 - The current section's hue is `--accent`; components read `--accent`, never raw hex.
@@ -52,7 +53,7 @@ Rules:
 
 ## Layout
 
-- **Sidebar (desktop)**: the horizontal lockup on `bg` (the JC mark in `currentColor` beside "Joko Comia" in Funnel Display; `src/components/ui/Logo.tsx`), Search (⌘K / Ctrl K), nav grouped **Work** (Overview, Projects, Graphics), **Profile** (Experience, Stack, Certificates, Writing) and **Play** (Playground), and the Light / Dark switch at the bottom. Socials and the CV live in the Overview hero and the footer, not here. Tone step off the page, no border.
+- **Sidebar (desktop)**: the horizontal lockup on `bg` (the JC mark in `currentColor` beside "Joko Comia" in Funnel Display; `src/components/ui/Logo.tsx`), Search (⌘K / Ctrl K), nav grouped **Work** (Overview, Projects, Graphics), **Profile** (Experience, Stack, Certificates, Writing) and **Play** (Playground, Community), and the Light / Dark switch at the bottom. Nav text 14px, icons 16px, sized so the whole sidebar fits a 720px-tall window without scrolling. Community carries a live "N here" pill (see Community). Socials and the CV live in the Overview hero and the footer, not here. Tone step off the page, no border.
 - **Mobile**: a 3.875rem top bar (`--bar-h`) with the JC mark, search icon and a list icon that morphs into a close icon. The menu wipes down from the bar over a 50% black scrim (280ms open, 180ms close), its items rising 8px 30ms apart. Scrim, Escape or a link closes it; the page behind doesn't scroll. Reduced motion: fades only.
 - **Browser icon**: `src/app/icon.svg`, the white mark on a black rounded tile, so it reads on light and dark tabs.
 - **Content column**: fills the space beside the sidebar; its right inset matches the sidebar's left one, so the page has one pair of outer margins.
@@ -60,7 +61,7 @@ Rules:
   1. **Hero** (one screen from md): JOKO fitted to the text column, role and location, the statement "I design it. I build it." with one sentence and availability, the actions (See the work, CV, LinkedIn, GitHub, Email), and the 3:4 portrait at the side, vertically centred on the text. A row of four proof tiles from the CV closes the screen. On phones: JOKO, portrait beside the role, copy, actions, tiles two across, at natural height.
   2. **Selected work** (`WorkIndex`): the curated six from `FEATURED` in `src/content/work.ts` (AVERA, CryoLipo, OCTA Voting, ResQLine, Slip, Lotline) as a stage, about one screen. Graphics and All projects link from the heading; the Playground is reached from Play words. Phones: a thumbnail and the kind in each row.
   3. **Profile** (`ExperiencePreview` → `ProfileTabs`): Experience, Certificates and Stack in one section, switched by a segmented control (tabs) beside the title. Only what a recruiter scans: role, organisation, kind and dates (all roles); the six latest verifiable certificates with their badges; the featured tools by group. Each panel ends with a button to its full page.
-  6. **Play words**: "I DESIGN / I CODE / I BUILD" as three display rows fitted margin to margin (`25.5cqi`), every letter loose (see Play words), plus a text link to the Playground.
+  6. **Play words**: "I DESIGN / I CODE / I BUILD" as three display rows fitted margin to margin (`25.5cqi`), every letter loose (see Play words), plus text links to the Playground and to Community ("N designing a poster now" while anyone is there, otherwise "Design a poster together").
   7. **Contact**: display-size rows on alternating bands (email, GitHub, LinkedIn), then "Say hello" with a round arrow.
   8. **Footer** (every page): inverted, link columns, colophon, JOKO fitted margin to margin.
 - Sections are 128–160px apart on desktop; each opens with a heading, with its "see everything" link beside or under it.
@@ -82,7 +83,7 @@ The active item is an `ink` pill with `bg` text (the switch's active fill) that 
 Scales to 0.97 on `:active`. Owns its transitions (transform 160ms, colours 150ms, `--ease-out`); don't add `transition-colors` beside it.
 
 ### Custom cursor (`Cursor`)
-A 12px mid-grey dot that follows the mouse (GSAP `quickTo`, 0.18s). Over links and buttons it grows to 56px and inverts what's beneath; difference blending runs only in that state, because it re-composites the page. `data-cursor="Word"` shows a solid circle with that word (work rows: "View", Say hello: "Write"). Shrinks on press. Re-checks on scroll. `.btn` and `[data-magnetic]` lean 30% toward it via `translate`. Off for touch and reduced motion; the system cursor returns in text fields and while a dialog is open, except dialogs marked `data-cursor-keep` (the project and graphics sheets). While such a dialog is open the cursor element lives inside it (a modal dialog is in the top layer, above any z-index); it returns to `<body>` when the dialog closes. The element is built in script, not JSX, so React never owns a node that moves.
+A 12px mid-grey dot pinned to the mouse (GSAP `quickSetter`, no easing: a trailing cursor read as lag). Over links and buttons it grows to 56px and inverts what's beneath; difference blending runs only in that state, because it re-composites the page. `data-cursor="Word"` shows a solid circle with that word (work rows: "View", Say hello: "Write"). Shrinks on press. Re-checks on scroll. `.btn` and `[data-magnetic]` lean 30% toward it via `translate`. Off for touch and reduced motion; the system cursor returns in text fields and while a dialog is open, except dialogs marked `data-cursor-keep` (the project and graphics sheets). While such a dialog is open the cursor element lives inside it (a modal dialog is in the top layer, above any z-index); it returns to `<body>` when the dialog closes. The element is built in script, not JSX, so React never owns a node that moves.
 
 ### Loader (`Intro`)
 About 2s, once per session, skippable (click, key, Skip intro). JOKO rises in outline, a solid fill sweeps left to right while a counter runs 000→100 ("Designing" → "Building"), then the panel lifts away (`expo.inOut`) and fires `INTRO_DONE` for the hero. Waits for fonts, locks scroll, hides itself after 5s if script fails. Skipped under reduced motion; `?nointro` skips it for testing.
@@ -158,6 +159,16 @@ Underlined in `line`, `--accent` on hover. External links say "(opens in a new t
 
 ### Chip (`Chip`)
 Round, filled: `surface` with ink text, or `strong` (ink fill) for the leading chip.
+
+### Community (`CommunityStudio`, `Poster`, `Archive`)
+"Design by committee": everyone on the page designs one poster in eight 15-second votes. Rules and backend: `docs/community.md`.
+- **Poster** (`Poster`): drawn entirely from the eight decision ids (theme word, layout, typeface, palette, motif, scale, texture, stamp) in CSS, sized with container-query units so the same component is the live stage, an archive thumbnail and the viewer. Undecided parts are a **blueprint**: outline type on a faint grid; the poster fills solid once a palette wins (the site's design-then-build idea). Poster palettes are artwork hexes in `globals.css`, not UI tokens. Type never leaves the poster except the Cropped scale, on purpose.
+- **Stage:** the poster in a `surface` band (12px padding, 24/16px radii). Hovering or focusing an option previews it on your poster ("Preview" chip); your vote shows as "Your pick". When a decision lands, an ink sweep crosses the poster (750ms `--ease-in-out`, like the loader's fill); none under reduced motion.
+- **Vote:** "Decision n of 8", the decision at section-title size, a 15-second ring (CSS animation started at the server's elapsed time, in the section hue) and four option cards: display-size labels on `surface` with the tally as a bar behind (`scaleX`, 450ms). Your pick inverts to `ink`. Cards rise 12px, 50ms apart, when a round opens.
+- **Talk:** six emoji and six preset phrases (fixed lists in `src/content/community-words.json`); they float up over the poster for everyone (1.9s / 2.8s, fade only under reduced motion). Nothing else is ever shown.
+- **Here now:** round name tags (colour dot + generated name), yours first with Shuffle.
+- **Archive:** finished posters, newest first (the database keeps 48), two across, four from lg; the thumbnail leans in on hover, the name takes the hue, the cursor reads "Open". A tap opens the **viewer**: a native modal dialog sized to fit the window with no scrolling (poster as tall as the window beside its decisions; on phones the poster takes the height the details leave). Caret buttons and arrow keys step, the black X or Escape closes. The dialog only fades; the 0.96 zoom runs on its contents, because a transform on the dialog would become the frame for the custom cursor.
+- **Live count:** `online_count()` polled every 20s (one shared request) feeds the sidebar pill (a breathing magenta dot, opacity only) and the Overview link.
 
 ## Playground pieces
 

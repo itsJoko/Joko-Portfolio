@@ -39,6 +39,9 @@ const PHRASE_GAP_MS = 2500;
 
 let uid = 0;
 
+// Known the same way on the server and in the browser, so the first render matches.
+const CONFIGURED = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+
 /**
  * Everything the Community page needs from Supabase: anonymous sign-in (after the Turnstile
  * check), polling current_state() every 2 s while the tab is visible, voting, the generated
@@ -46,7 +49,7 @@ let uid = 0;
  * that isn't a known reaction, phrase or generated name is dropped.
  */
 export function useCommunity(onTalk: (event: TalkEvent) => void) {
-  const [status, setStatus] = useState<Status>("checking");
+  const [status, setStatus] = useState<Status>(CONFIGURED ? "checking" : "offline");
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<CommunityState | null>(null);
   const [visitors, setVisitors] = useState<Visitor[]>([]);
@@ -64,10 +67,7 @@ export function useCommunity(onTalk: (event: TalkEvent) => void) {
   // ---- Sign-in ----
   useEffect(() => {
     const supabase = getSupabase();
-    if (!supabase) {
-      setStatus("offline");
-      return;
-    }
+    if (!supabase) return; // not configured: status started as "offline"
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
@@ -234,14 +234,15 @@ export function useCommunity(onTalk: (event: TalkEvent) => void) {
 
   const shuffleName = useCallback(async () => {
     const supabase = getSupabase();
-    if (!supabase || !state?.me) return;
-    const next = shuffleProfile(state.me);
+    const current = meRef.current;
+    if (!supabase || !current) return;
+    const next = shuffleProfile(current);
     meRef.current = next;
     setState((s) => (s ? { ...s, me: next } : s));
     channel.current?.track({ profile: next });
     const { error } = await supabase.rpc("save_profile", next);
     if (error) fetchSoon.current();
-  }, [state?.me]);
+  }, []);
 
   const react = useCallback((id: string) => {
     if (!reactionFor(id)) return false;

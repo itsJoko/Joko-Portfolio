@@ -23,7 +23,7 @@ export const revalidate = 86400;
 export default function OverviewPage() {
   return (
     <div className="flex flex-col">
-      <Hero name={site.name} role={site.role} intro={site.intro} />
+      <Hero name={site.name} role={site.role} />
 
       <section id="work" aria-labelledby="work-title" className="reveal scroll-mt-8 pt-16 md:pt-24">
         <div className="section-head">

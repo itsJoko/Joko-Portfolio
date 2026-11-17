@@ -21,7 +21,8 @@ export function Poster({
 }) {
   const d = decisions;
   const word = d.theme ? optionLabel("theme", d.theme) : "Untitled";
-  const stamp = d.stamp ? optionLabel("stamp", d.stamp) : null;
+  // "none" is a real choice: the committee voted for no stamp.
+  const stamp = d.stamp && d.stamp !== "none" ? optionLabel("stamp", d.stamp) : null;
   const label = [
     `Poster${number ? ` number ${number}` : ""}: ${word}`,
     ...(["layout", "typeface", "palette", "motif", "scale", "texture", "stamp"] as const)

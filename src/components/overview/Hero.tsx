@@ -23,7 +23,7 @@ const proof = [
  * The Overview's first screen as a summary: who this is, what he does, how to reach him and what he has
  * to show for it, all in one view. The portrait sits beside the text, centred on it.
  */
-export function Hero({ name, role, intro }: { name: string; role: string; intro: string }) {
+export function Hero({ name, role }: { name: string; role: string }) {
   const root = useRef<HTMLElement>(null);
   const letters = name.toUpperCase().split("");
 
@@ -89,8 +89,7 @@ export function Hero({ name, role, intro }: { name: string; role: string; intro:
         <div className="hero-copy flex flex-col gap-5">
           <div className="hero-fade">
             <p className="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">I design it. I build it.</p>
-            <p className="mt-2 max-w-[52ch] text-base leading-relaxed">{intro}</p>
-            <p className="mt-2 text-base text-muted">Open to OJT placements and freelance projects.</p>
+            <p className="mt-2 text-base text-muted">Open to OJT and freelance work.</p>
           </div>
           {/* The first things a reviewer reaches for: the work, the CV, and a way to get in touch. */}
           <div className="hero-fade hero-actions flex flex-wrap items-center gap-2">

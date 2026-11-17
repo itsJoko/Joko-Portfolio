@@ -165,10 +165,10 @@ needs one.
 
 1. **Database: done (17 Nov 2026).** Live in the Supabase project; poster #1 is already running. Details
    below in "What step 1 built".
-2. **Page `/community`:** the poster renderer (the eight decisions as CSS), the voting cards and timer ring,
+2. **Done (17 Nov 2026). Page `/community`:** the poster renderer (the eight decisions as CSS), the voting cards and timer ring,
    emoji reactions and quick phrases over Realtime, presence tags, the archive. Reduced motion and phones
    covered.
-3. **Shell:** "Community" under Play in the sidebar and palette, and the live "N designing now" teaser on the
+3. **Done (17 Nov 2026). Shell:** "Community" under Play in the sidebar and palette, and the live "N designing now" teaser on the
    Overview.
 4. **Tests:** Playwright with several browsers at once (several "visitors"), voting in the same round.
 

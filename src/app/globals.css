@@ -1486,10 +1486,12 @@ li:nth-child(even) > .contact-row {
   background-image: repeating-linear-gradient(-45deg, currentColor 0 1.6cqi, transparent 1.6cqi 6cqi);
   opacity: 0.85;
 }
+/* Each dot sits in the middle of its tile (never across a tile edge), and 15 tiles span the
+   width exactly, so sub-pixel rounding can't cut a row or column in half. */
 .poster[data-motif="dots"] .poster-motif {
-  background-image: radial-gradient(currentColor 0 1.1cqi, transparent 1.3cqi);
-  background-size: 6.5cqi 6.5cqi;
-  background-position: 3.25cqi 3.25cqi;
+  background-image: radial-gradient(circle closest-side, currentColor 0 34%, transparent 40%);
+  background-size: calc(100cqi / 15) calc(100cqi / 15);
+  background-position: 0 0;
 }
 
 /* Textures */

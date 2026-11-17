@@ -91,7 +91,7 @@
         { "id": "vol-1", "label": "Vol. 1" },
         { "id": "made-together", "label": "Made together" },
         { "id": "est-2026", "label": "Est. 2026" },
-        { "id": "final-final", "label": "Final_final" }
+        { "id": "none", "label": "No stamp" }
       ]
     }
   ],

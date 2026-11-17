@@ -25,7 +25,7 @@ Personality: composed and minimalist on the outside, playful and creative on the
 
 ## Operating Context
 
-- Structured as a dashboard with a persistent sidebar. Groups: **Work** (Overview, the default landing with a short about and contact; Projects; Graphics), **Profile** (Experience, Stack, Certificates, Writing) and **Play** (Playground; Community, planned).
+- Structured as a dashboard with a persistent sidebar. Groups: **Work** (Overview, the default landing with a short about and contact; Projects; Graphics), **Profile** (Experience, Stack, Certificates, Writing) and **Play** (Playground; Community).
 - Everything Joko has made is shown somewhere (projects, graphic design, certificates), but the Overview highlights a curated few.
 - Visitors arrive on desktop and phone; sidebar navigation is used repeatedly in one visit.
 - Deployed on Vercel, linked to the GitHub repo.
@@ -40,7 +40,7 @@ Personality: composed and minimalist on the outside, playful and creative on the
 - **Certificates:** Credly badges load live from `joko-comia`; TOPCIT Level 3 and AWS are added by hand.
 - **Writing:** posts mirrored from LinkedIn (SIKAPtala 2026, Batang Techno), with pictures.
 - **Playground:** interactive pieces for visitors, 3D and small games (neal.fun-like). 3D appears only here and in the Folio mascot.
-- **Community (planned):** "Design by committee": everyone online votes every few seconds on the next design decision for one shared poster; finished posters are archived. Talk is live emoji reactions and preset quick phrases only (no free text). Nickname plus a Cloudflare Turnstile bot check. Supabase backend (Postgres, Realtime presence, row-level security, Edge Functions). A live "N designing now" teaser on the Overview.
+- **Community:** "Design by committee": everyone online votes every few seconds on the next design decision for one shared poster; finished posters are archived. Talk is live emoji reactions and preset quick phrases only (no free text). Nickname plus a Cloudflare Turnstile bot check. Supabase backend (Postgres, Realtime presence, row-level security, Edge Functions). A live "N designing now" teaser on the Overview.
 - **Later:** "Walk the studio", a multiplayer 2D studio with Folio-style avatars, reusing the Community backend.
 - **First visit:** one intro moment, skippable, shown once per session. No other loading screens.
 - **Launch:** from the `redesign` branch to `main` on Vercel, after the build and motion checks.

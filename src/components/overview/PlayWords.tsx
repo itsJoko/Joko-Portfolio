@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CommunityTeaser } from "./CommunityTeaser";
 import { useRef } from "react";
 import gsap from "gsap";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
@@ -187,11 +188,13 @@ export function PlayWords() {
       </h2>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
         <p className="text-base text-muted">
-          <span className="play-hint-fine">Grab a letter and throw it.</span>
+          <span className="play-hint-fine">Throw the letters.</span>
           <span className="play-hint-touch">Tap a letter.</span>{" "}
           <Link href="/playground" className="link text-ink">
-            More in the Playground
+            Playground
           </Link>
+          <span aria-hidden> · </span>
+          <CommunityTeaser />
         </p>
         <div className="flex gap-2">
           <button type="button" onClick={() => scatterRef.current()} className="btn pressable">
