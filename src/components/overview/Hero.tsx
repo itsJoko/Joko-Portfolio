@@ -69,7 +69,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
               See the work
             </a>
             <Link href="/brief" className="btn pressable">
-              1-minute brief
+              Brief
             </Link>
             <CvLink className="btn pressable" />
             <SocialButtons className="ml-1" />

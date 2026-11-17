@@ -60,6 +60,12 @@ function NavList({ id, pathname, onNavigate, online }: { id: string; pathname: s
                   >
                     <Icon aria-hidden className="nav-icon relative size-4 shrink-0" />
                     <span className="relative">{label}</span>
+                    {id === "brief" && (
+                      <span className="nav-live">
+                        1 min
+                        <span className="sr-only"> read</span>
+                      </span>
+                    )}
                     {id === "community" && !!online && (
                       <span className="nav-live">
                         <span aria-hidden className="nav-live-dot" />

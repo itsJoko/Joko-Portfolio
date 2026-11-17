@@ -60,6 +60,7 @@
 [data-section="writing"] { --accent: var(--c-writing); }
 [data-section="playground"] { --accent: var(--c-playground); }
 [data-section="community"] { --accent: var(--c-community); }
+[data-section="brief"] { --accent: var(--c-overview); }
 
 @theme {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -1342,8 +1343,10 @@ li:nth-child(even) > .contact-row {
   }
 }
 
-/* Footer: the name fitted margin to margin. */
+/* Footer: the name fitted margin to margin. Decorative, so the pointer passes through it: at
+   line-height 0.8 its text box reaches above the letters and used to cover the footer's links. */
 .footer-mark {
+  pointer-events: none;
   font-family: var(--font-display);
   font-size: 40.5cqi;
   font-weight: 600;
@@ -2460,4 +2463,85 @@ li:nth-child(even) > .contact-row {
     transition: none;
   }
 }
+
+
+/* ---- Footer (inverted): quiet labels, underline-free links that dim the rest on hover ---- */
+.footer-quiet {
+  color: color-mix(in srgb, var(--bg) 60%, var(--ink));
+}
+.footer-email {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.footer-link,
+.footer-email {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .footer-link:hover,
+  .footer-email:hover {
+    text-decoration-color: currentColor;
+  }
+}
+/* Phones: tap-to-open bands, a tone step off the footer (FooterFold). The panel's height eases
+   open through grid-template-rows (0fr → 1fr) while the contents fade; closing is quicker. */
+.footer-fold {
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--bg) 8%, var(--ink));
+}
+.footer-fold-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  font-weight: 500;
+  text-align: left;
+}
+.footer-fold-caret {
+  transition: rotate 200ms var(--ease-out);
+}
+.footer-fold[data-open="true"] .footer-fold-caret {
+  rotate: 180deg;
+}
+.footer-fold-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms var(--ease-out);
+}
+.footer-fold[data-open="true"] .footer-fold-panel {
+  grid-template-rows: 1fr;
+  transition-duration: 260ms;
+}
+.footer-fold-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+.footer-fold-body {
+  padding: 0 1rem 1.25rem;
+  opacity: 0;
+  transition: opacity 150ms var(--ease-out);
+}
+.footer-fold[data-open="true"] .footer-fold-body {
+  opacity: 1;
+  transition: opacity 220ms var(--ease-out) 60ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-fold-caret,
+  .footer-fold-panel,
+  .footer-fold-body {
+    transition: none !important;
+  }
+}
+
+
+
+
 

@@ -60,15 +60,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     const external = (href: string) => () => window.open(href, "_blank", "noopener,noreferrer");
     const isDark = resolvedTheme === "dark";
     const list: Command[] = [
-      ...NAV.map((n) => ({ id: `page-${n.id}`, group: "Pages" as const, label: n.label, section: n.id, run: go(n.href) })),
-      {
-        id: "page-brief",
-        group: "Pages",
-        label: "Brief",
-        hint: "The one-minute version, for recruiters, managers and clients",
-        keywords: "summary resume cv recruiter hire freelance",
-        run: go("/brief"),
-      },
+      ...NAV.map((n) => ({
+        id: `page-${n.id}`,
+        group: "Pages" as const,
+        label: n.label,
+        section: n.id,
+        // The Brief is what recruiters and clients look for under other words.
+        keywords: n.id === "brief" ? "summary resume cv recruiter hire hiring freelance client one minute" : undefined,
+        run: go(n.href),
+      })),
       ...projects.map((p) => ({
         id: `project-${p.slug}`,
         group: "Projects" as const,

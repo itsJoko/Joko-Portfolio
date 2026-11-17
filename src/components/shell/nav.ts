@@ -1,12 +1,14 @@
 import type { IconType } from "react-icons";
-import { PiBriefcase, PiCertificate, PiCube, PiNotePencil, PiStack, PiFolderSimple, PiUsersThree, PiHouseSimple, PiPaintBrushBroad } from "react-icons/pi";
+import { PiBriefcase, PiCertificate, PiCube, PiNotePencil, PiStack, PiFolderSimple, PiUsersThree, PiHouseSimple, PiIdentificationBadge, PiPaintBrushBroad } from "react-icons/pi";
 
-export type SectionId = "overview" | "projects" | "experience" | "graphics" | "certificates" | "stack" | "writing" | "playground" | "community";
+export type SectionId = "overview" | "brief" | "projects" | "experience" | "graphics" | "certificates" | "stack" | "writing" | "playground" | "community";
 
 export type NavGroup = "Work" | "Profile" | "Play";
 
 export const NAV: readonly { id: SectionId; label: string; href: string; group: NavGroup; icon: IconType }[] = [
   { id: "overview", label: "Overview", href: "/", group: "Work", icon: PiHouseSimple },
+  // The one-minute version for recruiters, managers and clients; flagged "1 min" in the sidebar.
+  { id: "brief", label: "Brief", href: "/brief", group: "Work", icon: PiIdentificationBadge },
   { id: "projects", label: "Projects", href: "/projects", group: "Work", icon: PiFolderSimple },
   { id: "graphics", label: "Graphics", href: "/graphics", group: "Work", icon: PiPaintBrushBroad },
   { id: "experience", label: "Experience", href: "/experience", group: "Profile", icon: PiBriefcase },
