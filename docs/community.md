@@ -163,12 +163,75 @@ needs one.
 
 ## Part 3 — Build plan (Claude)
 
-1. **Database:** tables (`posters`, `rounds`, `votes`, `profiles`), RLS policies with explicit grants (new
-   tables aren't exposed to the API automatically), and the `current_state()` / `cast_vote()` functions in
-   a private schema with thin public wrappers. Checked with the Supabase security advisors.
+1. **Database: done (17 Nov 2026).** Live in the Supabase project; poster #1 is already running. Details
+   below in "What step 1 built".
 2. **Page `/community`:** the poster renderer (the eight decisions as CSS), the voting cards and timer ring,
    emoji reactions and quick phrases over Realtime, presence tags, the archive. Reduced motion and phones
    covered.
 3. **Shell:** "Community" under Play in the sidebar and palette, and the live "N designing now" teaser on the
    Overview.
 4. **Tests:** Playwright with several browsers at once (several "visitors"), voting in the same round.
+
+### What step 1 built
+
+Everything is in these files, so the database can be rebuilt from the repo:
+
+| File | What it is |
+|---|---|
+| `src/content/community-words.json` | **The only word list.** Every theme word, layout, typeface, palette, motif, scale, texture, stamp, name word and tag colour, as an `id` + `label`. The page will import it for labels; the database keeps a copy of the ids. |
+| `supabase/migrations/20261117092500_community_schema.sql` | Tables, row-level security, grants. |
+| `supabase/migrations/20261117092524_community_words.sql` | The database's copy of the word ids. Generated, don't edit by hand. |
+| `supabase/migrations/20261117092600_community_functions.sql` | The game rules (functions) and the first poster. |
+| `supabase/tests/community_test.sql` | Tests: paste into Supabase → SQL Editor → Run. It always ends with an error on purpose (that undoes everything it did); "ALL COMMUNITY TESTS PASSED" is the good one. |
+
+**Tables** (in `public`, the part of the database the website can reach):
+
+- `posters`: one row per poster. `status` is `live` (only one at a time, the database enforces it) or `done`
+  (the archive). `decisions` holds the eight winners, e.g. `{"theme": "tide", "layout": "grid", ...}`.
+  `contributors` = how many different people voted on it.
+- `rounds`: one 15-second vote: which poster, which step (1–8), which decision, the three options drawn for
+  it, when it opens and closes, and the `winner` (empty while open).
+- `votes`: one per person per round (they can change their mind until it closes).
+- `profiles`: each visitor's generated name and colour, stored as word ids (`bold` + `kerning` + `fold-blue`).
+
+**Who can see what** (row-level security + grants):
+
+- Anyone can read `posters` and `rounds`; nobody can change them directly.
+- A visitor can read only their own profile and their own votes. Nobody can see who voted for what; the page
+  only gets counts.
+- All writing goes through three functions. The browser calls them with `supabase.rpc(...)`:
+  - `current_state()`: the page calls this every 2 s. If the open round has run out it closes it, applies the
+    winner and opens the next one (after step 8 it archives the poster and starts a new one), then returns
+    everything the page needs: `{ now, me, poster, round: { options, closes_at, tally, voters, my_choice }, previous }`.
+    Gives a first-time visitor a random name.
+  - `cast_vote(round_id, choice)`: vote or change your vote. Refused if the round is over (`round_closed`)
+    or the choice isn't one of its three options (`invalid_choice`). Returns the new tally.
+  - `save_profile(adjective, noun, colour)`: for the "shuffle my name" button; only ids from the word list.
+- The real logic sits in a `private` schema the website can't reach; the `public` functions are thin
+  wrappers that check the visitor is signed in.
+
+**Rules worth knowing:**
+
+- No timer runs on a server. Whoever's page calls `current_state()` first after a round ends closes it. Row
+  locks make sure a round is closed exactly once even if a hundred people call at the same instant.
+- Ties go to the option that reached that count first. A round nobody votes on gets a random winner.
+- A poster nobody voted on at all (an idle open tab) is thrown away, not archived.
+- Nothing is free text: names, options and stamps are ids checked against the word list.
+
+**Checked:** Supabase Security Advisor: no findings. Performance Advisor: only two "unused index" notes,
+expected on a brand-new database (one index is for the archive page, the other keeps account deletion fast).
+The SQL tests passed all 15 checks in the SQL Editor with simulated visitors: round lifecycle, double voting,
+voting after the round ended, ties both ways, a 2–1 majority, a full poster being archived, an empty poster
+being discarded, privacy (no one sees others' votes, no direct writes), name validation, and deleting a user
+removing their votes and profile.
+
+**Changing the word list later:** edit `src/content/community-words.json`, run
+`node scripts/community-words-sql.mjs` (it writes a new migration file), then apply that file (SQL Editor or
+ask Claude). Existing posters keep the ids they already have.
+
+**If you ever use the Supabase CLI** (`supabase db push`): this database was built through the MCP tool, so
+its migration history is empty. Run `supabase migration repair --status applied 20261117092500 20261117092524 20261117092600`
+once first, so the CLI doesn't try to create the tables again.
+
+**Housekeeping:** anonymous users pile up in Authentication → Users. Supabase has no automatic cleanup; the
+anonymous sign-ins docs give a one-line SQL to delete ones older than 30 days. Run it now and then if it grows.

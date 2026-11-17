@@ -1,0 +1,144 @@
+{
+  "_about": "The only words the Community page can ever show. The database stores ids from these lists; the page turns ids into labels. After editing, run `node scripts/community-words-sql.mjs` and apply the SQL it writes (see docs/community.md).",
+  "decisions": [
+    {
+      "step": 1,
+      "key": "theme",
+      "label": "Theme word",
+      "options": [
+        { "id": "signal", "label": "Signal" },
+        { "id": "bloom", "label": "Bloom" },
+        { "id": "orbit", "label": "Orbit" },
+        { "id": "grain", "label": "Grain" },
+        { "id": "pulse", "label": "Pulse" },
+        { "id": "tide", "label": "Tide" },
+        { "id": "static", "label": "Static" },
+        { "id": "ember", "label": "Ember" }
+      ]
+    },
+    {
+      "step": 2,
+      "key": "layout",
+      "label": "Layout",
+      "options": [
+        { "id": "centred", "label": "Centred" },
+        { "id": "split", "label": "Split" },
+        { "id": "grid", "label": "Grid" },
+        { "id": "diagonal", "label": "Diagonal fold" }
+      ]
+    },
+    {
+      "step": 3,
+      "key": "typeface",
+      "label": "Typeface",
+      "options": [
+        { "id": "funnel", "label": "Funnel Display" },
+        { "id": "serif", "label": "Editorial serif" },
+        { "id": "condensed", "label": "Condensed grotesk" },
+        { "id": "wide", "label": "Wide grotesk" }
+      ]
+    },
+    {
+      "step": 4,
+      "key": "palette",
+      "label": "Palette",
+      "options": [
+        { "id": "ink", "label": "Ink on paper" },
+        { "id": "fold-blue", "label": "Fold blue" },
+        { "id": "signal-orange", "label": "Signal orange" },
+        { "id": "acid-lime", "label": "Acid lime" },
+        { "id": "night-teal", "label": "Night teal" }
+      ]
+    },
+    {
+      "step": 5,
+      "key": "motif",
+      "label": "Motif",
+      "options": [
+        { "id": "circles", "label": "Circles" },
+        { "id": "folds", "label": "Folds" },
+        { "id": "stripes", "label": "Stripes" },
+        { "id": "dots", "label": "Dots" }
+      ]
+    },
+    {
+      "step": 6,
+      "key": "scale",
+      "label": "Scale",
+      "options": [
+        { "id": "huge", "label": "Huge" },
+        { "id": "balanced", "label": "Balanced" },
+        { "id": "tiny", "label": "Tiny" }
+      ]
+    },
+    {
+      "step": 7,
+      "key": "texture",
+      "label": "Texture",
+      "options": [
+        { "id": "clean", "label": "Clean" },
+        { "id": "grain", "label": "Grain" },
+        { "id": "halftone", "label": "Halftone" }
+      ]
+    },
+    {
+      "step": 8,
+      "key": "stamp",
+      "label": "Stamp",
+      "options": [
+        { "id": "vol-1", "label": "Vol. 1" },
+        { "id": "made-together", "label": "Made together" },
+        { "id": "est-2026", "label": "Est. 2026" },
+        { "id": "no-notes", "label": "No notes" }
+      ]
+    }
+  ],
+  "names": {
+    "adjective": [
+      { "id": "bold", "label": "Bold" },
+      { "id": "tight", "label": "Tight" },
+      { "id": "loose", "label": "Loose" },
+      { "id": "teal", "label": "Teal" },
+      { "id": "quiet", "label": "Quiet" },
+      { "id": "loud", "label": "Loud" },
+      { "id": "sharp", "label": "Sharp" },
+      { "id": "soft", "label": "Soft" },
+      { "id": "wide", "label": "Wide" },
+      { "id": "narrow", "label": "Narrow" },
+      { "id": "bright", "label": "Bright" },
+      { "id": "heavy", "label": "Heavy" },
+      { "id": "light", "label": "Light" },
+      { "id": "italic", "label": "Italic" },
+      { "id": "golden", "label": "Golden" },
+      { "id": "crisp", "label": "Crisp" }
+    ],
+    "noun": [
+      { "id": "kerning", "label": "Kerning" },
+      { "id": "gutter", "label": "Gutter" },
+      { "id": "serif", "label": "Serif" },
+      { "id": "baseline", "label": "Baseline" },
+      { "id": "margin", "label": "Margin" },
+      { "id": "grid", "label": "Grid" },
+      { "id": "glyph", "label": "Glyph" },
+      { "id": "ligature", "label": "Ligature" },
+      { "id": "leading", "label": "Leading" },
+      { "id": "swatch", "label": "Swatch" },
+      { "id": "bleed", "label": "Bleed" },
+      { "id": "column", "label": "Column" },
+      { "id": "widow", "label": "Widow" },
+      { "id": "tracking", "label": "Tracking" },
+      { "id": "pixel", "label": "Pixel" },
+      { "id": "folio", "label": "Folio" }
+    ],
+    "colour": [
+      { "id": "fold-blue", "label": "Fold blue" },
+      { "id": "signal-orange", "label": "Signal orange" },
+      { "id": "acid-lime", "label": "Acid lime" },
+      { "id": "night-teal", "label": "Night teal" },
+      { "id": "rose", "label": "Rose" },
+      { "id": "violet", "label": "Violet" },
+      { "id": "sun", "label": "Sun" },
+      { "id": "ink", "label": "Ink" }
+    ]
+  }
+}
