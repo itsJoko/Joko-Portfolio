@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { PiCube, PiDownloadSimple, PiEnvelopeSimple, PiShuffle, PiSwap, PiUsersThree } from "react-icons/pi";
+import { PiCube, PiDownloadSimple, PiEnvelopeSimple, PiIdentificationBadge, PiShuffle, PiSwap, PiUsersThree } from "react-icons/pi";
 import { projects } from "@/content/projects";
 import { site } from "@/content/site";
 import { useOnlineCount } from "@/lib/community/useOnlineCount";
@@ -88,6 +88,14 @@ function FolioMenu({
     <div ref={ref} id={id} role="group" aria-label="Folio: where to?" className="folio-menu">
       <p className="folio-menu-title">Where to?</p>
       <ul className="flex flex-col">
+        <li>
+          {/* First, for recruiters and clients in a hurry. */}
+          <button type="button" className="folio-item pressable" onClick={() => go("/brief")}>
+            <PiIdentificationBadge aria-hidden className="size-4" />
+            Brief summary
+            <span className="folio-live">1 min</span>
+          </button>
+        </li>
         <li>
           <button type="button" className="folio-item pressable" onClick={surprise}>
             <PiShuffle aria-hidden className="size-4" />

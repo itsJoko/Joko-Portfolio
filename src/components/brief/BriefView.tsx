@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { PiArrowUpRight, PiPrinter } from "react-icons/pi";
+import { PiArrowUpRight, PiCursorClick, PiPrinter } from "react-icons/pi";
 import { CertBadge } from "@/components/certificates/CertBadge";
+import { BriefTour, TOUR_START } from "./BriefTour";
 import { CvLink, SocialButtons } from "@/components/ui";
 import { Segmented } from "@/components/ui/Segmented";
 import { AUDIENCES, ORDER, WORK, craft, process, services, type AudienceId, type SectionId } from "@/content/brief";
@@ -219,17 +220,21 @@ export function BriefView({ certificates, certificateCount }: { certificates: Ce
           Brief
         </h1>
         <p className="max-w-[40ch] text-lg leading-snug text-muted md:text-xl">The one-minute version. {current.lead}</p>
-        <div data-print-hide className="flex flex-wrap items-center gap-2">
+        <div data-print-hide data-tour="actions" className="flex flex-wrap items-center gap-2">
           <CvLink className="btn btn-primary pressable" />
           <SocialButtons className="hero-actions" />
           <button type="button" className="btn pressable" onClick={() => window.print()}>
             <PiPrinter aria-hidden className="size-4" />
             Print
           </button>
+          <button type="button" className="btn pressable" onClick={() => window.dispatchEvent(new Event(TOUR_START))}>
+            <PiCursorClick aria-hidden className="size-4" />
+            Tour
+          </button>
         </div>
       </header>
 
-      <div data-print-hide className="sticky top-[var(--bar-h)] z-20 -mx-2 mb-10 bg-bg px-2 py-3 md:mb-14">
+      <div data-print-hide data-tour="switch" className="sticky top-[var(--bar-h)] z-20 -mx-2 mb-10 bg-bg px-2 py-3 md:mb-14">
         <Segmented
           options={AUDIENCES.map((a) => a.label)}
           value={current.label}
@@ -239,7 +244,7 @@ export function BriefView({ certificates, certificateCount }: { certificates: Ce
       </div>
 
       {/* Who this is, for every reader. */}
-      <section aria-label="Summary" className="brief-hero">
+      <section aria-label="Summary" data-tour="summary" className="brief-hero">
         <p className="font-display text-[clamp(2rem,4vw,3rem)] font-semibold leading-none tracking-[-0.03em]">{site.fullName}</p>
         <p className="mt-3 text-lg">{site.role}</p>
         <p className="text-muted">
@@ -249,7 +254,7 @@ export function BriefView({ certificates, certificateCount }: { certificates: Ce
 
       <div key={audience} className="brief-swap">
         {ORDER[audience].map((id) => (
-          <section key={id} aria-labelledby={`brief-${id}`} className="brief-section">
+          <section key={id} aria-labelledby={`brief-${id}`} data-tour={`section-${id}`} className="brief-section">
             <h2 id={`brief-${id}`} className="brief-label">
               {LABELS[id]}
             </h2>
@@ -257,6 +262,8 @@ export function BriefView({ certificates, certificateCount }: { certificates: Ce
           </section>
         ))}
       </div>
+
+      <BriefTour audience={audience} />
     </>
   );
 }
