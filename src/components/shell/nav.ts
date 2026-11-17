@@ -12,7 +12,7 @@ export const NAV: readonly { id: SectionId; label: string; href: string; group: 
   { id: "experience", label: "Experience", href: "/experience", group: "Profile", icon: PiBriefcase },
   { id: "stack", label: "Stack", href: "/stack", group: "Profile", icon: PiStack },
   { id: "certificates", label: "Certificates", href: "/certificates", group: "Profile", icon: PiCertificate },
-  { id: "writing", label: "Writing", href: "/writing", group: "Profile", icon: PiNotePencil },
+  { id: "writing", label: "Blog", href: "/blog", group: "Profile", icon: PiNotePencil },
   { id: "playground", label: "Playground", href: "/playground", group: "Play", icon: PiCube },
   { id: "community", label: "Community", href: "/community", group: "Play", icon: PiUsersThree },
 ];

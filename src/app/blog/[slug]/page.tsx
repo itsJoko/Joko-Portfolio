@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PiArrowLeft, PiArrowUpRight } from "react-icons/pi";
-import { formatDate, getPost, getPosts, renderPost } from "@/lib/posts";
+import { PostGallery } from "@/components/blog/PostGallery";
+import { formatDate, getPost, getPosts, renderPostParts } from "@/lib/posts";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -17,16 +18,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return post ? { title: post.title, description: post.summary } : {};
 }
 
-/** One post, set for reading: a display title, then the body at 18px within a 65-character measure. */
+/**
+ * One post, set for reading: a display title, then the text on the left (18px within a
+ * 65-character measure) and the pictures in their own column on the right, each opening large.
+ */
 export default async function PostPage({ params }: Props) {
   const post = getPost((await params).slug);
   if (!post) notFound();
+  const { html, images } = renderPostParts(post);
 
   return (
     <article className="pb-12">
-      <Link href="/writing" className="link inline-flex items-center gap-1.5 text-base">
+      <Link href="/blog" className="link inline-flex items-center gap-1.5 text-base">
         <PiArrowLeft aria-hidden className="size-4" />
-        All writing
+        All posts
       </Link>
 
       <header className="mt-10 md:mt-14">
@@ -45,7 +50,10 @@ export default async function PostPage({ params }: Props) {
         )}
       </p>
 
-      <div className="post-body mt-12" dangerouslySetInnerHTML={{ __html: renderPost(post) }} />
+      <div className="post-layout mt-12">
+        <div className="post-body" dangerouslySetInnerHTML={{ __html: html }} />
+        <PostGallery images={images} />
+      </div>
     </article>
   );
 }

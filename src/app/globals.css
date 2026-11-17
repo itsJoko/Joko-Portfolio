@@ -770,12 +770,13 @@ li:nth-child(even).exp-row {
   letter-spacing: -0.035em;
 }
 
-/* Writing: list titles take the section hue under the pointer; a post reads at 18px within 65 characters. */
+/* Blog: the whole row is a link; its title takes the section hue under the pointer.
+   A post reads at 18px within 65 characters. */
 .post-title {
   transition: color 150ms var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
-  .post-title:hover {
+  .post-row:hover .post-title {
     color: var(--accent);
   }
 }
@@ -2339,4 +2340,124 @@ li:nth-child(even) > .contact-row {
 }
 
 
+
+
+
+/* ---- Blog post: text on the left, pictures in their own column on the right (below on phones) ---- */
+.post-layout {
+  display: grid;
+  gap: 3rem;
+}
+/* Side by side only with real room for both; narrower, the pictures follow the text. */
+@media (min-width: 80rem) {
+  .post-layout {
+    grid-template-columns: minmax(0, 65ch) minmax(16rem, 1fr);
+    gap: 4rem;
+    align-items: start;
+  }
+}
+/* Between phone and wide: the pictures two across under the text. */
+@media (min-width: 40rem) and (max-width: 79.99rem) {
+  .post-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.post-gallery {
+  display: grid;
+  gap: 1.5rem;
+}
+.post-shot {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 0.5rem;
+}
+.post-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  transition: transform 700ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .post-shot:hover img {
+    transform: scale(1.03);
+  }
+}
+.post-shot-caption {
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* Picture viewer: a native modal dialog that only fades (a transform on it would move the custom
+   cursor, which lives inside open dialogs); the picture fits the window, never scrolls. */
+.image-viewer {
+  margin: auto;
+  width: min(100% - 2rem, 80rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  border-radius: 2rem;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 1rem;
+  opacity: 1;
+  transition:
+    opacity 200ms var(--ease-out),
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+  @starting-style {
+    opacity: 0;
+  }
+}
+.image-viewer:focus-visible {
+  outline: none;
+}
+.image-viewer::backdrop {
+  background: rgb(0 0 0 / 0.7);
+  transition: opacity 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+.image-viewer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 200ms var(--ease-out);
+  @starting-style {
+    transform: scale(0.97);
+  }
+}
+.image-viewer-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.image-viewer-figure img {
+  display: block;
+  max-width: 100%;
+  /* Window minus the dialog's margin and padding, the button row and the caption. */
+  max-height: calc(100dvh - 2rem - 2rem - 3rem - 1rem - 2.75rem);
+  width: auto;
+  height: auto;
+  border-radius: 1rem;
+  object-fit: contain;
+}
+.image-viewer-figure figcaption {
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .image-viewer-inner {
+    transition: none;
+  }
+  .post-shot img {
+    transition: none;
+  }
+}
 

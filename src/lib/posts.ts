@@ -3,7 +3,7 @@ import path from "node:path";
 import { Marked } from "marked";
 
 /**
- * Writing: one Markdown file per post in src/content/posts, named <slug>.md.
+ * Blog: one Markdown file per post in src/content/posts, named <slug>.md.
  * Files starting with "_" (like _template.md) are ignored.
  *
  * Front matter, between two `---` lines at the top:
@@ -67,6 +67,47 @@ export function getPost(slug: string): Post | undefined {
 export function renderPost(post: Post): string {
   // A picture alone on its line arrives wrapped in <p>, where a <figure> isn't allowed.
   return markdown.parse(post.body, { async: false }).replace(/<p>(<figure>[\s\S]*?<\/figure>)<\/p>/g, "$1");
+}
+
+export type PostImage = { src: string; alt: string; caption?: string; width?: number; height?: number };
+
+/** A WebP's pixel size from its header (public/…), so the page can reserve the space before it loads. */
+function webpSize(src: string): { width: number; height: number } | undefined {
+  try {
+    const buf = fs.readFileSync(path.join(process.cwd(), "public", src));
+    if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.toString("ascii", 8, 12) !== "WEBP") return undefined;
+    const chunk = buf.toString("ascii", 12, 16);
+    if (chunk === "VP8X") return { width: 1 + buf.readUIntLE(24, 3), height: 1 + buf.readUIntLE(27, 3) };
+    if (chunk === "VP8 ") return { width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
+    if (chunk === "VP8L") {
+      const bits = buf.readUInt32LE(21);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+    }
+  } catch {
+    // Missing or unreadable: the picture still shows, just without reserved space.
+  }
+  return undefined;
+}
+
+const unattr = (value: string) => value.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&amp;/g, "&");
+
+/**
+ * The post split in two for the reading layout: the text (every picture taken out) and the
+ * pictures in order, which sit in their own column beside the text and open large on a click.
+ */
+export function renderPostParts(post: Post): { html: string; images: PostImage[] } {
+  const images: PostImage[] = [];
+  const html = renderPost(post).replace(/<figure>([\s\S]*?)<\/figure>/g, (_, inner: string) => {
+    const src = inner.match(/src="([^"]*)"/)?.[1];
+    const alt = inner.match(/alt="([^"]*)"/)?.[1] ?? "";
+    const caption = inner.match(/<figcaption>([\s\S]*?)<\/figcaption>/)?.[1];
+    if (src) {
+      const clean = unattr(src);
+      images.push({ src: clean, alt: unattr(alt), caption: caption ? unattr(caption) : undefined, ...webpSize(clean) });
+    }
+    return "";
+  });
+  return { html, images };
 }
 
 export function formatDate(date: string) {
