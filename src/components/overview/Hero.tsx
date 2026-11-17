@@ -1,15 +1,7 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { INTRO_DONE, introFinished } from "@/components/shell/Intro";
 import { CvLink, SocialButtons } from "@/components/ui";
 import { site } from "@/content/site";
-
-gsap.registerPlugin(useGSAP);
 
 // The results a reviewer looks for, from the CV. Each one opens the page that backs it up.
 const proof = [
@@ -24,31 +16,11 @@ const proof = [
  * to show for it, all in one view. The portrait sits beside the text, centred on it.
  */
 export function Hero({ name, role }: { name: string; role: string }) {
-  const root = useRef<HTMLElement>(null);
   const letters = name.toUpperCase().split("");
 
-  useGSAP(
-    () => {
-      const q = gsap.utils.selector(root);
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const tl = gsap.timeline({ paused: true });
-      tl.set(q(".hero-char, .hero-fade"), { visibility: "visible" });
-      if (reduce) {
-        tl.from(q(".hero-char, .hero-fade"), { opacity: 0, duration: 0.4, ease: "power1.out" });
-      } else {
-        tl.from(q(".hero-char"), { yPercent: 105, duration: 0.9, ease: "expo.out", stagger: 0.06 })
-          .from(q(".hero-fade"), { y: 16, opacity: 0, duration: 0.6, ease: "expo.out", stagger: 0.06 }, 0.2);
-      }
-      const play = () => tl.play();
-      if (introFinished()) play();
-      else window.addEventListener(INTRO_DONE, play, { once: true });
-      return () => window.removeEventListener(INTRO_DONE, play);
-    },
-    { scope: root },
-  );
-
+  // The entrance is CSS (globals.css, "Hero entrance"), so it starts with the first paint.
   return (
-    <section ref={root} aria-labelledby="hero-title" className="-mt-10 flex flex-col gap-6 pt-2 md:-mt-16 md:min-h-svh md:gap-5 md:py-5">
+    <section aria-labelledby="hero-title" className="-mt-10 flex flex-col gap-6 pt-2 md:-mt-16 md:min-h-svh md:gap-5 md:py-5">
       <div className="hero-grid md:flex-1">
         <h1 id="hero-title" className="hero-name">
           {/* Body size, so this hidden line doesn't stretch the heading's text box to the monument's width. */}
@@ -57,7 +29,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
           </span>
           <span aria-hidden className="block overflow-hidden">
             {letters.map((c, i) => (
-              <span key={i} className="hero-char inline-block">
+              <span key={i} className="hero-char inline-block" style={{ "--i": i } as React.CSSProperties}>
                 {c}
               </span>
             ))}
@@ -66,7 +38,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
 
         {/* A surface frame, so the dark studio backdrop doesn't dissolve into the dark page. */}
         {site.photo && (
-          <div className="hero-photo hero-fade rounded-[1.75rem] bg-surface p-1">
+          <div className="hero-photo hero-fade rounded-[1.75rem] bg-surface p-1" style={{ "--i": 0 } as React.CSSProperties}>
             <Image
               src={site.photo}
               alt={`Portrait of ${site.brandName}`}
@@ -79,7 +51,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
           </div>
         )}
 
-        <div className="hero-role hero-fade">
+        <div className="hero-role hero-fade" style={{ "--i": 1 } as React.CSSProperties}>
           {/* The sidebar names him from md; the phone bar only has the mark. */}
           <p className="font-display text-lg font-semibold leading-tight tracking-[-0.02em] md:hidden">{site.brandName}</p>
           <p className="mt-0.5 text-base font-medium leading-snug md:mt-0 md:text-lg">{role}</p>
@@ -87,12 +59,12 @@ export function Hero({ name, role }: { name: string; role: string }) {
         </div>
 
         <div className="hero-copy flex flex-col gap-5">
-          <div className="hero-fade">
+          <div className="hero-fade" style={{ "--i": 2 } as React.CSSProperties}>
             <p className="font-display text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">I design it. I build it.</p>
             <p className="mt-2 text-base text-muted">Open to OJT and freelance work.</p>
           </div>
           {/* The first things a reviewer reaches for: the work, the CV, and a way to get in touch. */}
-          <div className="hero-fade hero-actions flex flex-wrap items-center gap-2">
+          <div className="hero-fade hero-actions flex flex-wrap items-center gap-2" style={{ "--i": 3 } as React.CSSProperties}>
             <a href="#work" className="btn btn-primary pressable">
               See the work
             </a>
@@ -102,7 +74,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
         </div>
       </div>
 
-      <ul className="hero-fade grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <ul className="hero-fade grid grid-cols-2 gap-2 lg:grid-cols-4" style={{ "--i": 4 } as React.CSSProperties}>
         {proof.map((p) => (
           <li key={p.title}>
             <Link href="/experience" className="proof-tile">

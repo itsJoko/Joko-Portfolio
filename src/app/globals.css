@@ -643,11 +643,37 @@ li:nth-child(even) > .proof-tile {
 .hero-name > span[aria-hidden] {
   padding-block: 0.02em 0.04em;
 }
-/* With script on, the parts that animate in start hidden; GSAP reveals them. A safety net shows them anyway. */
-.js .hero-char,
-.js .hero-fade {
+/* Hero entrance in plain CSS, so it starts with the first paint instead of waiting for scripts.
+   While the first-visit intro plays (script on, no intro-seen / intro-done yet) the parts stay
+   hidden; a safety net shows them after 6s anyway. Then the letters rise through their mask
+   (0.9s, 60ms apart) and the other parts follow (0.6s, from 0.2s, 60ms apart). */
+.js:not(.intro-seen):not([data-intro-done="true"]) .hero-char,
+.js:not(.intro-seen):not([data-intro-done="true"]) .hero-fade {
   visibility: hidden;
   animation: hero-bail 0s 6s forwards;
+}
+:is(.intro-seen, [data-intro-done="true"]) .hero-char {
+  animation: hero-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+:is(.intro-seen, [data-intro-done="true"]) .hero-fade {
+  animation: hero-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(200ms + var(--i, 0) * 60ms);
+}
+@keyframes hero-rise {
+  from { transform: translateY(105%); }
+}
+@keyframes hero-fade-in {
+  from { opacity: 0; transform: translateY(16px); }
+}
+@keyframes hero-fade-only {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.intro-seen, [data-intro-done="true"]) :is(.hero-char, .hero-fade) {
+    animation: hero-fade-only 0.4s ease-out both;
+    animation-delay: 0ms;
+  }
 }
 @keyframes hero-bail {
   to {

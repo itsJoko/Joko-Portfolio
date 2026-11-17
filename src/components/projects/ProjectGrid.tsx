@@ -35,9 +35,9 @@ const playLoop = (card: HTMLElement, on: boolean) => {
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The project's thumbnail, or its drawn title card until one exists. */
-function Still({ item, sizes, className = "" }: { item?: WorkItem; sizes: string; className?: string }) {
+function Still({ item, sizes, className = "", preload = false }: { item?: WorkItem; sizes: string; className?: string; preload?: boolean }) {
   if (!item) return null;
-  if (item.image) return <Image src={item.image} alt="" fill sizes={sizes} className={`object-cover ${className}`} />;
+  if (item.image) return <Image src={item.image} alt="" fill sizes={sizes} preload={preload} className={`object-cover ${className}`} />;
   return (
     <span className={`flex items-end bg-surface p-6 font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[0.9] tracking-[-0.04em] ${className}`}>
       {item.title}
@@ -225,7 +225,8 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
                 <span className="project-media relative block aspect-video overflow-hidden rounded-2xl">
                   <span className="project-zoom absolute inset-0 block">
                     <span className="project-settle absolute inset-0 block">
-                      <Still item={stillOf(p.slug)} sizes={CARD_SIZES} className="absolute inset-0" />
+                      {/* The first two cards are on screen at load: fetch them straight away. */}
+                      <Still item={stillOf(p.slug)} sizes={CARD_SIZES} className="absolute inset-0" preload={i < 2} />
                       {p.video?.loop && <video src={p.video.loop} muted loop playsInline preload="none" aria-hidden className="project-loop absolute inset-0 size-full object-cover" />}
                     </span>
                   </span>

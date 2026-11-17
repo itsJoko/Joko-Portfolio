@@ -19,23 +19,27 @@ function useMedia(query: string) {
   );
 }
 
-/** True once the intro is over and the browser is idle, so WebGL never competes with an animation. */
+/**
+ * True once the intro is over and the visitor has done something (moved the mouse, scrolled,
+ * pressed a key). The 3D engine is about 900 KB and building Folio's lighting takes a moment,
+ * so it waits for a real visitor instead of competing with the page's first load.
+ */
 function useReadyAfterIntro() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    let timer = 0;
+    const events = ["pointermove", "pointerdown", "wheel", "keydown", "scroll"] as const;
     let idle = 0;
-    const start = () => {
-      timer = window.setTimeout(() => {
-        if ("requestIdleCallback" in window) idle = requestIdleCallback(() => setReady(true), { timeout: 800 });
-        else setReady(true);
-      }, 1100);
+    const go = () => {
+      events.forEach((e) => window.removeEventListener(e, go));
+      if ("requestIdleCallback" in window) idle = requestIdleCallback(() => setReady(true), { timeout: 800 });
+      else setReady(true);
     };
+    const start = () => events.forEach((e) => window.addEventListener(e, go, { once: true, passive: true }));
     if (introFinished()) start();
     else window.addEventListener(INTRO_DONE, start, { once: true });
     return () => {
       window.removeEventListener(INTRO_DONE, start);
-      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, go));
       if (idle) cancelIdleCallback(idle);
     };
   }, []);

@@ -90,12 +90,12 @@ About 2s, once per session, skippable (click, key, Skip intro). JOKO rises in ou
 
 ### Hero (`Hero`)
 - The `h1` is the monument; its visually hidden line carries the role at body size.
-- Letters rise through a mask after the loader (0.9s, 60ms stagger), other parts follow; settled in about 1.1s. Reduced motion: fade only.
+- Letters rise through a mask after the loader (0.9s, 60ms stagger), other parts follow; settled in about 1.1s. Plain CSS keyframes (not GSAP), gated on the intro being done, so the hero paints with the page and counts as fast content. Reduced motion: fade only.
 - JOKO's letters take a section hue the moment the pointer touches them and fade back over 700ms, leaving a trail. Fine pointers only.
 - **Proof tiles**: `surface` / `card` bands that invert to `ink` under the pointer; each opens Experience. CV facts only.
 
 ### Folio (`FolioCorner`, `FolioScene`)
-The mascot, built in code from the brand character sheet (a bevelled page with a blue fold, jointed limbs and a face). A 112 × 144px companion fixed in the bottom-right corner from md, on every page; phones skip it. The one hidden mechanic: clicking makes it hop and turn, and flips it between the solid build and a blueprint outline of the design. It waves on arrival, on hover and at the footer, blinks, breathes and leans toward the pointer. Decorative and `aria-hidden`. Starts after the intro once the browser is idle; renders on demand (every frame while changing, 20 a second at rest, only while on screen). Reduced motion: poses snap, nothing idles.
+The mascot, built in code from the brand character sheet (a bevelled page with a blue fold, jointed limbs and a face). A 112 × 144px companion fixed in the bottom-right corner from md, on every page; phones skip it. The one hidden mechanic: clicking makes it hop and turn, and flips it between the solid build and a blueprint outline of the design. It waves on arrival, on hover and at the footer, blinks, breathes and leans toward the pointer. Decorative and `aria-hidden`. Loads after the intro on the visitor's first move (pointer, scroll, key), never during page load, so its 900 KB 3D engine doesn't cost first-load speed; renders on demand (every frame while changing, 20 a second at rest, only while on screen). Reduced motion: poses snap, nothing idles.
 
 ### Work index (`WorkIndex`)
 - **Names** on five of twelve columns, up to 72px in tight rows, muted until active. Hover or focus activates a row: the name turns ink and leans in.

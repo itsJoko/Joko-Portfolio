@@ -157,7 +157,7 @@ export function GraphicsShowcase({ collections, categories }: { collections: Gra
       <Segmented options={tabs} value={tab} onChange={setTab} label="Filter graphics by category" className="mb-10 md:mb-14" />
 
       <ul ref={grid} className="gx-masonry">
-        {shown.map((c) => {
+        {shown.map((c, n) => {
           const i = collections.indexOf(c);
           return (
             <li key={c.slug} id={c.slug} className="gx-card mb-8 break-inside-avoid md:mb-10">
@@ -165,7 +165,7 @@ export function GraphicsShowcase({ collections, categories }: { collections: Gra
                 <span className="relative block overflow-hidden rounded-2xl bg-surface" style={{ aspectRatio: `${c.cover.width} / ${c.cover.height}` }}>
                   <span className="gx-zoom absolute inset-0 block">
                     <span className="gx-settle absolute inset-0 block">
-                      <Image src={c.cover.src} alt="" fill sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 50vw" className="object-cover" />
+                      <Image src={c.cover.src} alt="" fill sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 50vw" preload={n < 2 && tab === tabs[0]} className="object-cover" />
                     </span>
                   </span>
                 </span>
