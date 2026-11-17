@@ -138,7 +138,6 @@ html {
   line-height: 0.82;
   letter-spacing: -0.05em;
   white-space: nowrap;
-  /* Room for the letters to rise from below the line. */
   padding-block: 0.04em;
 }
 .intro-outline {
@@ -2552,9 +2551,10 @@ li:nth-child(even) > .contact-row {
 
 
 
-/* ---- Brief tour (BriefTour): Joko's cursor, like a collaborator's in a design file ----
-   Glides between stops on --ease-in-out (on-screen movement), fades in and out; the bubble sits
-   below-right of the arrow, slid left when it would leave the screen. The stop it talks about gets a ring. */
+/* ---- Joko's guide cursor (GuideCursor: the Brief tour and the Overview hint) ----
+   Like a collaborator's cursor in a Figma file: an arrow and a name tag in the section hue, a
+   speech bubble under them. Glides between spots on --ease-in-out and fades in and out; each new
+   line fades in where it is (the cursor is already moving). */
 .tour {
   position: fixed;
   top: 0;
@@ -2568,6 +2568,10 @@ li:nth-child(even) > .contact-row {
 }
 .tour[data-visible="true"] {
   opacity: 1;
+  /* Fades in when it first appears too, not only when shown again. */
+  @starting-style {
+    opacity: 0;
+  }
 }
 .tour-arrow {
   width: 1.5rem;
@@ -2590,7 +2594,7 @@ li:nth-child(even) > .contact-row {
   white-space: nowrap;
 }
 .tour-bubble {
-  /* left and width are set in BriefTour so it always stays on screen. */
+  /* left and width are set in GuideCursor so it always stays on screen. */
   position: absolute;
   top: 2.75rem;
   border-radius: 0.25rem 1.25rem 1.25rem 1.25rem;
@@ -2603,11 +2607,10 @@ li:nth-child(even) > .contact-row {
 .tour[data-visible="true"] .tour-bubble {
   pointer-events: auto;
 }
-/* Each new line fades in where it is (no movement: the cursor is already moving). */
 .tour-line {
-  animation: tour-line 220ms var(--ease-out);
+  animation: tour-fade 220ms var(--ease-out);
 }
-@keyframes tour-line {
+@keyframes tour-fade {
   from { opacity: 0; }
 }
 .tour-btn {
@@ -2620,12 +2623,6 @@ li:nth-child(even) > .contact-row {
 .tour-btn-primary {
   background: var(--accent);
   color: var(--bg);
-}
-/* The stop being talked about. */
-[data-tour-active] {
-  outline: 2px solid var(--accent);
-  outline-offset: 6px;
-  border-radius: 1.5rem;
 }
 @media (prefers-reduced-motion: reduce) {
   .tour {

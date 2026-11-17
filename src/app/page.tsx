@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PiArrowUpRight } from "react-icons/pi";
+import { BriefHint } from "@/components/overview/BriefHint";
 import { ExperiencePreview } from "@/components/overview/ExperiencePreview";
 import { Hero } from "@/components/overview/Hero";
 import { PlayWords } from "@/components/overview/PlayWords";
@@ -24,6 +25,7 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col">
       <Hero name={site.name} role={site.role} />
+      <BriefHint />
 
       <section id="work" aria-labelledby="work-title" className="reveal scroll-mt-8 pt-24 md:pt-36 xl:pt-44">
         <div className="section-head">

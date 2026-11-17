@@ -27,7 +27,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* suppressHydrationWarning: browser extensions inject scripts into <head>, which React would flag here. */}
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: introScript }} />
       </head>
-      <body className="font-sans antialiased">
+      {/* suppressHydrationWarning: extensions such as Grammarly add attributes to <body> before React loads. */}
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Intro name={site.name} />
           <Shell>{children}</Shell>
