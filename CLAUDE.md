@@ -37,7 +37,7 @@ Spend boldness in one place: the Playground plus one signature detail in the she
 - Animate only `transform` and `opacity`. Never `transition: all`. Never enter from `scale(0)`.
 - Buttons/pressables: `scale(0.97)` on `:active`.
 - Hover effects inside `@media (hover: hover) and (pointer: fine)`.
-- Springs (bounce 0.1–0.2) and spring-follow cursor: Playground only. Exception: the Overview's Play words section (visitor-triggered).
+- Springs (bounce 0.1–0.2) and spring-follow cursor: Playground only. Exceptions, both visitor-triggered: the Overview's Play words section and the hero portrait (`HalftonePortrait`, halftone dots that burst and spring back on hover or tap). Don't add a third without asking.
 - One-time showpieces only: Overview first-load stagger (30–80ms steps) and the first-visit intro (<1s, skippable, once per session).
 - No fade-up-on-scroll on every section.
 - `prefers-reduced-motion`: keep opacity/color, remove movement; Playground shows a static poster.
