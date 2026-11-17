@@ -230,8 +230,18 @@ removing their votes and profile.
 ask Claude). Existing posters keep the ids they already have.
 
 **If you ever use the Supabase CLI** (`supabase db push`): this database was built through the MCP tool, so
-its migration history is empty. Run `supabase migration repair --status applied 20261117092500 20261117092524 20261117092600`
+its migration history is empty. Run `supabase migration repair --status applied 20261117092500 20261117092524 20261117092600 20261117105522 20261117110000 20261117120000 20261117120100`
 once first, so the CLI doesn't try to create the tables again.
+
+**Added while building the page (17 Nov 2026):**
+
+- `20261117110000_community_realtime.sql`: the live channel (`community:studio`) is private; only signed-in
+  visitors can listen or send.
+- `20261117120000_community_online_count.sql`: visitors' "last seen" time and `online_count()`, the
+  "N here" number beside Community in the sidebar (anyone may call it; it returns a number only).
+- `20261117105522_community_words.sql` + `20261117120100_community_four_options.sql`: four options per
+  round (Scale gained Cropped, Texture gained Risograph, the "No notes" stamp became "Final_final"), and the
+  archive keeps the newest 48 finished posters.
 
 **Housekeeping:** anonymous users pile up in Authentication → Users. Supabase has no automatic cleanup; the
 anonymous sign-ins docs give a one-line SQL to delete ones older than 30 days. Run it now and then if it grows.

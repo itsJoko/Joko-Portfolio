@@ -68,7 +68,8 @@
       "options": [
         { "id": "huge", "label": "Huge" },
         { "id": "balanced", "label": "Balanced" },
-        { "id": "tiny", "label": "Tiny" }
+        { "id": "tiny", "label": "Tiny" },
+        { "id": "cropped", "label": "Cropped" }
       ]
     },
     {
@@ -78,7 +79,8 @@
       "options": [
         { "id": "clean", "label": "Clean" },
         { "id": "grain", "label": "Grain" },
-        { "id": "halftone", "label": "Halftone" }
+        { "id": "halftone", "label": "Halftone" },
+        { "id": "riso", "label": "Risograph" }
       ]
     },
     {
@@ -89,7 +91,7 @@
         { "id": "vol-1", "label": "Vol. 1" },
         { "id": "made-together", "label": "Made together" },
         { "id": "est-2026", "label": "Est. 2026" },
-        { "id": "no-notes", "label": "No notes" }
+        { "id": "final-final", "label": "Final_final" }
       ]
     }
   ],
@@ -139,6 +141,24 @@
       { "id": "violet", "label": "Violet" },
       { "id": "sun", "label": "Sun" },
       { "id": "ink", "label": "Ink" }
+    ]
+  },
+  "talk": {
+    "reactions": [
+      { "id": "clap", "label": "Applause", "emoji": "👏" },
+      { "id": "fire", "label": "Fire", "emoji": "🔥" },
+      { "id": "love", "label": "Love it", "emoji": "😍" },
+      { "id": "laugh", "label": "Laughing", "emoji": "😂" },
+      { "id": "hmm", "label": "Hmm", "emoji": "🤔" },
+      { "id": "blue", "label": "Blue heart", "emoji": "💙" }
+    ],
+    "phrases": [
+      { "id": "bold-choice", "label": "Bold choice" },
+      { "id": "go-blue", "label": "Go blue!" },
+      { "id": "trust-process", "label": "Trust the process" },
+      { "id": "make-it-pop", "label": "Make it pop" },
+      { "id": "less-is-more", "label": "Less is more" },
+      { "id": "ship-it", "label": "Ship it" }
     ]
   }
 }

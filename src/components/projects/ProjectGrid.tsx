@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { PiArrowUpRight, PiCaretLeft, PiCaretRight, PiX } from "react-icons/pi";
+import { PiArrowUpRight, PiCaretLeft, PiCaretRight, PiGithubLogo, PiX } from "react-icons/pi";
 import { Chip } from "@/components/ui";
 import type { Project } from "@/content/projects";
 import { work, type WorkItem } from "@/content/work";
@@ -333,7 +333,17 @@ export function ProjectGrid({ projects }: { projects: Project[] }) {
                 </dl>
                 {link && (
                   <div data-sheet-in className="mt-10">
-                    {link.href ? (
+                    {link.href && /github\.com/.test(link.href) ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${link.label} (opens in a new tab)`}
+                        className={`btn pressable !p-3 ${project.highlight ? "btn-primary" : ""}`}
+                      >
+                        <PiGithubLogo aria-hidden className="size-5" />
+                      </a>
+                    ) : link.href ? (
                       <a
                         href={link.href}
                         target="_blank"

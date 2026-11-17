@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { PiList, PiMagnifyingGlass, PiX } from "react-icons/pi";
 import { Logo } from "@/components/ui";
 import { site } from "@/content/site";
+import { useOnlineCount } from "@/lib/community/useOnlineCount";
 import { CommandPalette, ShortcutHint } from "./CommandPalette";
 import { FolioCorner } from "./FolioCorner";
 import { Footer } from "./Footer";
@@ -17,7 +18,7 @@ import { ThemeToggle } from "./ThemeToggle";
 /** The horizontal lockup: the JC mark, then the name. */
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-3 rounded-3xl bg-bg px-4 py-3.5">
+    <Link href="/" className="flex items-center gap-3 rounded-3xl bg-bg px-4 py-3">
       <Logo className="h-7 w-auto shrink-0" />
       <span className="font-display text-lg font-semibold leading-none tracking-[-0.03em]">{site.brandName}</span>
     </Link>
@@ -33,13 +34,13 @@ function BrandCompact({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-function NavList({ id, pathname, onNavigate }: { id: string; pathname: string; onNavigate?: () => void }) {
+function NavList({ id, pathname, onNavigate, online }: { id: string; pathname: string; onNavigate?: () => void; online?: number | null }) {
   const current = sectionFromPath(pathname);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {NAV_GROUPS.map((group) => (
         <div key={group}>
-          <p id={`${id}-${group}`} className="px-3 pb-1.5 text-[0.8125rem] text-muted">
+          <p id={`${id}-${group}`} className="px-3 pb-1 text-[0.8125rem] text-muted">
             {group}
           </p>
           <ul aria-labelledby={`${id}-${group}`} className="flex flex-col gap-0.5">
@@ -52,12 +53,19 @@ function NavList({ id, pathname, onNavigate }: { id: string; pathname: string; o
                     data-section={id}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
-                    className={`nav-item pressable relative flex items-center gap-3 rounded-full px-4 py-2.5 text-[0.9375rem] font-medium ${
+                    className={`nav-item pressable relative flex items-center gap-3 rounded-full px-4 py-2 text-[0.875rem] font-medium ${
                       active ? "bg-ink text-bg" : "text-muted"
                     }`}
                   >
-                    <Icon aria-hidden className="nav-icon relative size-[1.125rem] shrink-0" />
+                    <Icon aria-hidden className="nav-icon relative size-4 shrink-0" />
                     <span className="relative">{label}</span>
+                    {id === "community" && !!online && (
+                      <span className="nav-live">
+                        <span aria-hidden className="nav-live-dot" />
+                        {online} here
+                        <span className="sr-only"> now</span>
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -72,6 +80,7 @@ function NavList({ id, pathname, onNavigate }: { id: string; pathname: string; o
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const section = sectionFromPath(pathname);
+  const online = useOnlineCount();
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -108,24 +117,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh md:row-span-2 flex-col gap-6 overflow-y-auto bg-surface p-3 md:flex">
+      <aside className="sticky top-0 hidden h-dvh md:row-span-2 flex-col gap-4 overflow-y-auto bg-surface p-3 md:flex">
         <Brand />
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <button
             type="button"
             aria-haspopup="dialog"
             onClick={() => setPaletteOpen(true)}
-            className="pressable flex items-center gap-2 rounded-full bg-bg px-4 py-2.5 text-sm text-muted hover:text-ink"
+            className="pressable flex items-center gap-2 rounded-full bg-bg px-4 py-2 text-sm text-muted hover:text-ink"
           >
             <PiMagnifyingGlass aria-hidden className="size-4" />
             <span className="mr-auto">Search</span>
             <ShortcutHint />
           </button>
           <nav aria-label="Main">
-            <NavList id="nav" pathname={pathname} />
+            <NavList id="nav" pathname={pathname} online={online} />
           </nav>
         </div>
-        <div className="mt-auto pt-5">
+        <div className="mt-auto pt-3">
           <ThemeToggle />
         </div>
       </aside>
@@ -163,7 +172,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <div aria-hidden className="menu-scrim" onClick={() => setMenuOpen(false)} />
         <nav id="mobile-nav" aria-label="Main" inert={!menuOpen} className="menu-panel flex flex-col gap-6 px-3 pb-6 pt-2">
-          <NavList id="mobile-nav-list" pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+          <NavList id="mobile-nav-list" pathname={pathname} online={online} onNavigate={() => setMenuOpen(false)} />
           <div className="menu-theme pt-2">
             <ThemeToggle />
           </div>

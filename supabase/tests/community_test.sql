@@ -72,8 +72,8 @@ begin
   if s->'poster'->>'id' is null or s->'round'->>'id' is null then
     raise exception 'FAIL 2: no live poster/round: %', s;
   end if;
-  if jsonb_array_length(s->'round'->'options') <> 3 then
-    raise exception 'FAIL 2: round should have 3 options: %', s->'round'->'options';
+  if jsonb_array_length(s->'round'->'options') <> 4 then
+    raise exception 'FAIL 2: round should have 4 options: %', s->'round'->'options';
   end if;
   if (s->'round'->>'closes_at')::timestamptz <= now() then
     raise exception 'FAIL 2: returned round is already expired';

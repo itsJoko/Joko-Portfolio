@@ -27,12 +27,11 @@ export function Footer() {
         </div>
         <div>
           <p className="font-medium">Elsewhere</p>
-          <ul className="mt-2 flex flex-col gap-1">
-            {SOCIALS.filter((x) => x.external).map((x) => (
-              <li key={x.id}>
-                <a href={x.href} target="_blank" rel="noopener noreferrer">
-                  {x.label}
-                  <span className="sr-only"> (opens in a new tab)</span>
+          <ul className="mt-3 flex gap-2">
+            {SOCIALS.filter((x) => x.external).map(({ id, label, href, icon: Icon }) => (
+              <li key={id}>
+                <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in a new tab)`} className="footer-icon pressable">
+                  <Icon aria-hidden className="size-5" />
                 </a>
               </li>
             ))}

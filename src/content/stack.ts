@@ -40,7 +40,7 @@ export const stack: StackGroup[] = [
   {
     id: "tools",
     label: "Code and tools",
-    items: [{ name: "Git and GitHub" }, { name: "Vitest" }, { name: "Java" }, { name: "C#" }, { name: "C++" }, { name: "Agent context files (CLAUDE.md, AGENTS.md)" }],
+    items: [{ name: "Git and GitHub" }, { name: "Java" }, { name: "C#" }, { name: "C++" }],
   },
 ];
 

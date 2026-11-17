@@ -1,7 +1,7 @@
 import type { IconType } from "react-icons";
-import { PiBriefcase, PiCertificate, PiCube, PiNotePencil, PiStack, PiFolderSimple, PiHouseSimple, PiPaintBrushBroad } from "react-icons/pi";
+import { PiBriefcase, PiCertificate, PiCube, PiNotePencil, PiStack, PiFolderSimple, PiUsersThree, PiHouseSimple, PiPaintBrushBroad } from "react-icons/pi";
 
-export type SectionId = "overview" | "projects" | "experience" | "graphics" | "certificates" | "stack" | "writing" | "playground";
+export type SectionId = "overview" | "projects" | "experience" | "graphics" | "certificates" | "stack" | "writing" | "playground" | "community";
 
 export type NavGroup = "Work" | "Profile" | "Play";
 
@@ -14,6 +14,7 @@ export const NAV: readonly { id: SectionId; label: string; href: string; group: 
   { id: "certificates", label: "Certificates", href: "/certificates", group: "Profile", icon: PiCertificate },
   { id: "writing", label: "Writing", href: "/writing", group: "Profile", icon: PiNotePencil },
   { id: "playground", label: "Playground", href: "/playground", group: "Play", icon: PiCube },
+  { id: "community", label: "Community", href: "/community", group: "Play", icon: PiUsersThree },
 ];
 
 export const NAV_GROUPS: readonly NavGroup[] = ["Work", "Profile", "Play"];

@@ -21,6 +21,7 @@
   --c-stack: #be123c;
   --c-writing: #0f766e;
   --c-playground: #a64b00;
+  --c-community: #a21caf;
 
   --accent: var(--ink);
   /* Height of the mobile top bar; the pinned hero sits under it. */
@@ -44,6 +45,7 @@
   --c-stack: #ff7a93;
   --c-writing: #2dd4bf;
   --c-playground: #ffb547;
+  --c-community: #f08cff;
 
   color-scheme: dark;
 }
@@ -57,6 +59,7 @@
 [data-section="stack"] { --accent: var(--c-stack); }
 [data-section="writing"] { --accent: var(--c-writing); }
 [data-section="playground"] { --accent: var(--c-playground); }
+[data-section="community"] { --accent: var(--c-community); }
 
 @theme {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -1322,3 +1325,620 @@ li:nth-child(even) > .contact-row {
   white-space: nowrap;
   margin-inline-start: -0.04em;
 }
+
+/* ---- Community poster ----
+   Drawn from the eight decision ids (Poster.tsx). The palette hexes here are artwork, not UI
+   tokens. Undecided = "blueprint": outline type on a faint grid, filled once a palette wins. */
+.poster {
+  --p-bg: var(--bg);
+  --p-fg: var(--ink);
+  --p-accent: var(--muted);
+  --p-k: 1;
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 16px;
+  background-color: var(--p-bg);
+  color: var(--p-fg);
+  transition:
+    background-color 500ms var(--ease-out),
+    color 500ms var(--ease-out);
+}
+.poster[data-palette="blueprint"] {
+  background-image:
+    repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 8.333cqi),
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 8.333cqi);
+}
+.poster[data-palette="ink"] { --p-bg: #f4f1ea; --p-fg: #111111; --p-accent: #111111; }
+.poster[data-palette="fold-blue"] { --p-bg: #1d4ed8; --p-fg: #ffffff; --p-accent: #000000; }
+.poster[data-palette="signal-orange"] { --p-bg: #ff5a1f; --p-fg: #111111; --p-accent: #ffffff; }
+.poster[data-palette="acid-lime"] { --p-bg: #d7ff3a; --p-fg: #111111; --p-accent: #1d4ed8; }
+.poster[data-palette="night-teal"] { --p-bg: #0b2e2e; --p-fg: #e8fff9; --p-accent: #2dd4bf; }
+
+/* Layers: motif, then type, then stamp, then texture on top. */
+.poster-motif,
+.poster-body,
+.poster-texture {
+  position: absolute;
+  inset: 0;
+}
+.poster-motif {
+  z-index: 0;
+  color: var(--p-accent);
+}
+.poster-body {
+  z-index: 1;
+  inset: 7cqi;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.poster-texture {
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* The theme word: typeface x scale. --p-k evens out how wide each typeface sets. */
+.poster-word {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: calc(var(--p-size, 17cqi) * var(--p-k));
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+}
+.poster[data-scale="huge"] { --p-size: 24cqi; }
+.poster[data-scale="balanced"] { --p-size: 16cqi; }
+.poster[data-scale="tiny"] { --p-size: 7cqi; }
+/* Cropped: the word set far too big, running off both edges. */
+.poster[data-scale="cropped"] { --p-size: 46cqi; }
+.poster[data-scale="cropped"] .poster-body {
+  inset-inline: -12cqi;
+}
+.poster[data-typeface="serif"] { --p-k: 1.05; }
+.poster[data-typeface="serif"] .poster-word {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+.poster[data-typeface="condensed"] { --p-k: 1.15; }
+.poster[data-typeface="condensed"] .poster-word {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transform: scaleX(0.72);
+}
+.poster[data-typeface="wide"] { --p-k: 0.62; }
+.poster[data-typeface="wide"] .poster-word {
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  transform: scaleX(1.18);
+}
+.poster[data-palette="blueprint"] .poster-word {
+  color: transparent;
+  -webkit-text-stroke: max(1px, 0.3cqi) var(--ink);
+}
+.poster[data-theme-set="false"] .poster-word {
+  -webkit-text-stroke-color: var(--muted);
+}
+
+/* Layouts */
+.poster[data-layout="split"] .poster-motif {
+  inset: 0 0 50%;
+  background-color: var(--p-accent);
+  color: var(--p-bg);
+}
+.poster[data-layout="split"] .poster-body {
+  place-items: end start;
+  text-align: start;
+}
+.poster[data-layout="grid"] .poster-motif {
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 23cqi, transparent 23cqi 25cqi),
+    repeating-linear-gradient(0deg, #000 0 23cqi, transparent 23cqi 25cqi);
+  -webkit-mask-composite: source-in;
+  mask:
+    repeating-linear-gradient(90deg, #000 0 23cqi, transparent 23cqi 25cqi),
+    repeating-linear-gradient(0deg, #000 0 23cqi, transparent 23cqi 25cqi);
+  mask-composite: intersect;
+}
+.poster[data-layout="grid"] .poster-body {
+  place-items: start;
+  text-align: start;
+}
+/* Left-aligned layouts stretch or squeeze type from its left edge, so it stays inside. */
+.poster:is([data-layout="split"], [data-layout="grid"]) .poster-word {
+  transform-origin: left center;
+}
+.poster[data-layout="diagonal"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--p-accent);
+  clip-path: polygon(0 68%, 100% 34%, 100% 100%, 0 100%);
+  opacity: 0.9;
+}
+.poster[data-palette="blueprint"][data-layout="diagonal"]::before {
+  opacity: 0.18;
+}
+.poster[data-layout="diagonal"] .poster-body > .poster-word {
+  rotate: -20deg;
+}
+
+/* Motifs, drawn in the accent colour (currentColor of .poster-motif). */
+.poster[data-motif="circles"] .poster-motif {
+  background-image:
+    radial-gradient(circle at 74% 26%, transparent 0 15cqi, currentColor 15cqi 16.5cqi, transparent 16.5cqi 23cqi, currentColor 23cqi 24.5cqi, transparent 24.5cqi 31cqi, currentColor 31cqi 32.5cqi, transparent 32.5cqi),
+    radial-gradient(circle at 18% 86%, currentColor 0 9cqi, transparent 9cqi);
+}
+.poster[data-motif="folds"] .poster-motif {
+  background-image:
+    linear-gradient(135deg, transparent 0 58%, currentColor 58% 74%, transparent 74%),
+    linear-gradient(315deg, currentColor 0 16%, transparent 16%),
+    linear-gradient(45deg, transparent 0 82%, currentColor 82%);
+}
+.poster[data-motif="stripes"] .poster-motif {
+  background-image: repeating-linear-gradient(-45deg, currentColor 0 1.6cqi, transparent 1.6cqi 6cqi);
+  opacity: 0.85;
+}
+.poster[data-motif="dots"] .poster-motif {
+  background-image: radial-gradient(currentColor 0 1.1cqi, transparent 1.3cqi);
+  background-size: 6.5cqi 6.5cqi;
+  background-position: 3.25cqi 3.25cqi;
+}
+
+/* Textures */
+.poster[data-texture="grain"] .poster-texture {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.32;
+  mix-blend-mode: overlay;
+}
+.poster[data-texture="halftone"] .poster-texture {
+  background-image: radial-gradient(var(--p-fg) 0 0.45cqi, transparent 0.55cqi);
+  background-size: 2.2cqi 2.2cqi;
+  opacity: 0.22;
+  -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 70%);
+  mask-image: linear-gradient(160deg, #000 0%, transparent 70%);
+}
+
+/* Risograph: the word printed twice, the second pass in the accent and slightly off register. */
+.poster[data-texture="riso"] .poster-word {
+  text-shadow: 0.9cqi 0.7cqi 0 var(--p-accent);
+}
+.poster[data-texture="riso"] .poster-texture {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+}
+
+/* Stamp */
+.poster-stamp {
+  position: absolute;
+  top: 6cqi;
+  right: 6cqi;
+  z-index: 2;
+  padding: 1.6cqi 3cqi;
+  border-radius: 9999px;
+  background: var(--p-fg);
+  color: var(--p-bg);
+  font-family: var(--font-display);
+  font-size: 3.6cqi;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  rotate: 8deg;
+}
+.poster[data-palette="blueprint"] .poster-stamp {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 max(1px, 0.3cqi) var(--ink);
+}
+
+/* ---- Community studio ---- */
+.studio-frame {
+  position: relative;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  padding: 12px;
+}
+/* A decision landed: a solid ink sweep crosses the poster, like the loader's fill. */
+.poster-sweep {
+  position: absolute;
+  inset: 12px;
+  z-index: 5;
+  border-radius: 16px;
+  background: var(--ink);
+  pointer-events: none;
+  animation: poster-sweep 750ms var(--ease-in-out) forwards;
+}
+@keyframes poster-sweep {
+  0% { clip-path: inset(0 100% 0 0); }
+  50% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 100%); }
+}
+.studio-pick {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  z-index: 6;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Reactions and phrases float up over the poster for everyone. */
+.studio-floats {
+  position: absolute;
+  inset: 12px;
+  z-index: 4;
+  container-type: size;
+  overflow: hidden;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.studio-float {
+  position: absolute;
+  bottom: 3%;
+  left: var(--x);
+  margin-left: -1.25rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  line-height: 1;
+  animation: studio-float 1900ms var(--ease-out) forwards;
+}
+.studio-phrase {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0;
+  translate: -50% 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  animation-duration: 2800ms;
+}
+@keyframes studio-float {
+  0% { opacity: 0; transform: translateY(16px) scale(0.92); }
+  12% { opacity: 1; transform: translateY(0) scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-62cqh) rotate(var(--r, 0deg)); }
+}
+@keyframes studio-fade {
+  0% { opacity: 0; }
+  15%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Vote cards: the tally fills behind the option as a bar (transform only). */
+.vote-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 4.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  text-align: start;
+  animation: vote-in 450ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+.vote-bar {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in oklab, var(--ink) 9%, transparent);
+  transform-origin: left center;
+  transform: scaleX(var(--share, 0));
+  transition: transform 450ms var(--ease-out);
+}
+.vote-label {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  transition: color 150ms ease;
+}
+.vote-count {
+  font-size: 1.125rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.vote-card[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.vote-card[aria-pressed="true"] .vote-bar {
+  background: color-mix(in oklab, var(--bg) 20%, transparent);
+}
+.vote-card[aria-pressed="true"] .vote-count {
+  color: inherit;
+}
+.vote-card:disabled {
+  cursor: default;
+}
+@media (hover: hover) and (pointer: fine) {
+  .vote-card:not([aria-pressed="true"]):not(:disabled):hover .vote-label {
+    color: var(--accent);
+  }
+}
+@keyframes vote-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+/* 15-second ring: drains with a CSS animation started at the server's elapsed time. */
+.round-ring {
+  position: relative;
+  flex: none;
+  width: 3.75rem;
+  height: 3.75rem;
+}
+.round-ring svg {
+  width: 100%;
+  height: 100%;
+  rotate: -90deg;
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.round-ring-track {
+  stroke: var(--surface);
+}
+.round-ring-fill {
+  stroke: var(--accent);
+  stroke-dasharray: 100;
+  animation: ring-drain linear forwards;
+}
+@keyframes ring-drain {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 100; }
+}
+.round-ring-num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Talk */
+.talk-emoji {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background: var(--surface);
+  font-size: 1.375rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .talk-emoji:hover {
+    background: var(--card);
+  }
+  .dark .talk-emoji:hover {
+    background: var(--line);
+  }
+}
+.talk-phrase {
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+}
+
+/* Who's here */
+.visitor-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--surface);
+  padding: 0.75rem 1.1rem;
+  font-weight: 500;
+}
+.tag-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: var(--tag, var(--muted));
+}
+.tag-dot[data-colour="fold-blue"] { --tag: #1d4ed8; }
+.tag-dot[data-colour="signal-orange"] { --tag: #ff5a1f; }
+.tag-dot[data-colour="acid-lime"] { --tag: #a3d10b; }
+.tag-dot[data-colour="night-teal"] { --tag: #0f766e; }
+.tag-dot[data-colour="rose"] { --tag: #e11d48; }
+.tag-dot[data-colour="violet"] { --tag: #7c3aed; }
+.tag-dot[data-colour="sun"] { --tag: #f5b300; }
+.tag-dot[data-colour="ink"] { --tag: var(--ink); }
+.dark .tag-dot[data-colour="fold-blue"] { --tag: #7b9cff; }
+.dark .tag-dot[data-colour="night-teal"] { --tag: #2dd4bf; }
+.dark .tag-dot[data-colour="violet"] { --tag: #b69cff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-sweep {
+    display: none;
+  }
+  .studio-float {
+    animation-name: studio-fade;
+  }
+  .vote-card {
+    animation-name: none;
+  }
+  .vote-bar {
+    transition: none;
+  }
+}
+
+/* Sidebar: "N here" beside Community, on every page. The dot breathes (opacity only). */
+.nav-live {
+  position: relative;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.nav-live-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background: var(--c-community);
+  animation: nav-live 2.4s ease-in-out infinite;
+}
+@keyframes nav-live {
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-live-dot {
+    animation: none;
+  }
+}
+
+/* Community archive: cards open the viewer. */
+.archive-poster {
+  transition: transform 700ms var(--ease-out);
+}
+.archive-name {
+  transition: color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .archive-card:hover .archive-poster {
+    transform: scale(1.03);
+  }
+  .archive-card:hover .archive-name {
+    color: var(--accent);
+  }
+}
+
+/* Archive viewer: a native modal dialog, the poster large beside its decisions. */
+.poster-viewer {
+  margin: auto;
+  width: min(100% - 2rem, 64rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden; /* sized to fit: the poster takes its height from the window */
+  border-radius: 2rem;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 1.25rem;
+  /* The dialog itself only fades: a transform on it would become the frame for the custom
+     cursor (position: fixed, and it lives inside an open dialog), shifting and clipping it.
+     The slight zoom runs on the contents instead. */
+  opacity: 1;
+  transition:
+    opacity 220ms var(--ease-out),
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+  @starting-style {
+    opacity: 0;
+  }
+}
+.poster-viewer .poster-viewer-inner {
+  transition: transform 220ms var(--ease-out);
+  @starting-style {
+    transform: scale(0.96);
+  }
+}
+.poster-viewer:focus-visible {
+  outline: none;
+}
+.poster-viewer::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  transition: opacity 220ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+/* Phones: a column as tall as the dialog; the poster gets whatever height the details
+   leave and keeps its 3:4 shape inside it (container query units). */
+.poster-viewer {
+  height: calc(100dvh - 2rem);
+}
+.poster-viewer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+.poster-viewer-art {
+  flex: 1 1 auto;
+  min-height: 10rem;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.poster-viewer-art > .poster {
+  width: min(100cqw, 100cqh * 0.75);
+}
+@media (min-width: 48rem) {
+  .poster-viewer {
+    width: fit-content;
+    max-width: calc(100% - 2rem);
+    height: auto;
+    padding: 1.5rem;
+  }
+  .poster-viewer-inner {
+    display: grid;
+    height: auto;
+    grid-template-columns: auto minmax(16rem, 24rem);
+    align-items: start;
+    gap: 2rem;
+  }
+  /* Side by side: the poster is as tall as the window allows (dialog margin + padding). */
+  .poster-viewer-art {
+    display: block;
+    container-type: normal;
+    min-height: 0;
+    width: min(calc((100dvh - 2rem - 3rem) * 0.75), calc(100vw - 2rem - 3rem - 18rem));
+  }
+  .poster-viewer-art > .poster {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .poster-viewer .poster-viewer-inner {
+    transition: none;
+  }
+  .archive-poster {
+    transition: none;
+  }
+}
+
+/* Footer socials: round icons on the inverted footer; they fill under the pointer. */
+.footer-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--bg) 14%, transparent);
+  color: var(--bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .footer-icon:hover {
+    background: var(--bg);
+    color: var(--ink);
+  }
+}
+

@@ -54,8 +54,9 @@ export function Cursor() {
     const dialogs = new MutationObserver(home);
     dialogs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["open"] });
 
-    const moveX = gsap.quickTo(ring, "x", { duration: 0.18, ease: "power3.out" });
-    const moveY = gsap.quickTo(ring, "y", { duration: 0.18, ease: "power3.out" });
+    // Pinned to the pointer with no easing: a trailing cursor reads as lag.
+    const moveX = gsap.quickSetter(ring, "x", "px") as (value: number) => void;
+    const moveY = gsap.quickSetter(ring, "y", "px") as (value: number) => void;
     let state: State = "hidden";
     let magnet: HTMLElement | null = null;
     let magnetX: gsap.QuickToFunc | null = null;

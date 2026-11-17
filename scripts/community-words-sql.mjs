@@ -30,7 +30,7 @@ const wordRows = [];
 
 words.decisions.forEach((d, i) => {
   if (d.step !== i + 1) throw new Error(`decision "${d.key}" should be step ${i + 1}`);
-  if (d.options.length < 3) throw new Error(`decision "${d.key}" needs at least 3 options`);
+  if (d.options.length < 4) throw new Error(`decision "${d.key}" needs at least 4 options (each round shows 4)`);
   check(d.key, d.options);
   decisionRows.push(`  (${d.step}, ${q(d.key)})`);
   d.options.forEach((o, p) => wordRows.push(`  (${q(d.key)}, ${q(o.id)}, ${p + 1})`));
