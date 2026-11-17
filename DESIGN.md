@@ -206,5 +206,5 @@ LCP < 2.5s, INP < 200ms, CLS < 0.1. One font family. Three.js only in the hero a
 ## Still needed (not inventable)
 
 - **Project links:** CryoLipo's live store (in handover) and AVERA's repo (private for now). Both show no link until then.
-- **Project videos:** a short loop and a full cut per project, from Joko (Phase 2 adds the slots).
+- **Project videos:** AVERA, CryoLipo, ResQLine and Slip have theirs (loops at 0:23, 0:05, 0:25 and 0:09, 7 s each; Slip was recorded vertical, so it sits centred on its own purple #861972). The other projects keep their stills until Joko records them.
 - **Graphics redesigns:** Joko's own versions of The Reef marks and the STRASUC awardee set; drop them into the Graphics source folder and re-run `scripts/build-graphic-covers.mjs`, then `scripts/build-graphics.mjs`.

@@ -40,6 +40,7 @@ export const projects: Project[] = [
     media: "AVERA app screenshot (1600 × 1000)",
     // The repo is private for now; add the link back once it is public.
     links: [],
+    video: { loop: "/projects/video/avera-loop.mp4", full: "/projects/video/avera-full.mp4" },
   },
   {
     slug: "cryolipo",
@@ -52,6 +53,7 @@ export const projects: Project[] = [
     highlight: true,
     media: "CryoLipo store screenshot (1600 × 1000)",
     links: [{ label: "Visit the store", href: "" }],
+    video: { loop: "/projects/video/cryolipo-loop.mp4", full: "/projects/video/cryolipo-full.mp4" },
   },
   {
     slug: "octa-website",
@@ -88,6 +90,7 @@ export const projects: Project[] = [
     highlight: false,
     media: "ResQLine screenshot (1600 × 1000)",
     links: [{ label: "View on GitHub", href: "https://github.com/nathsuki73/resqline-admin" }],
+    video: { loop: "/projects/video/resqline-loop.mp4", full: "/projects/video/resqline-full.mp4" },
   },
   {
     slug: "slip",
@@ -100,6 +103,8 @@ export const projects: Project[] = [
     highlight: false,
     media: "Slip editor screenshot (1600 × 1000)",
     links: [{ label: "Try Slip", href: "https://slip-studio.vercel.app/" }],
+    // Recorded vertical: centred on Slip's own purple (#861972) to fill the 16:9 frame.
+    video: { loop: "/projects/video/slip-loop.mp4", full: "/projects/video/slip-full.mp4" },
   },
   {
     slug: "lotline",
@@ -188,3 +193,4 @@ export const projects: Project[] = [
 ];
 
 export const highlightedProjects = projects.filter((p) => p.highlight);
+
