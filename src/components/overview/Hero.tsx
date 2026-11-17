@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CvLink, SocialButtons } from "@/components/ui";
 import { site } from "@/content/site";
+import { HalftonePortrait } from "./HalftonePortrait";
 
 // The results a reviewer looks for, from the CV. Each one opens the page that backs it up.
 const proof = [
@@ -38,7 +39,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
 
         {/* A surface frame, so the dark studio backdrop doesn't dissolve into the dark page. */}
         {site.photo && (
-          <div className="hero-photo hero-fade rounded-[1.75rem] bg-surface p-1" style={{ "--i": 0 } as React.CSSProperties}>
+          <div className="hero-photo hero-fade relative rounded-[1.75rem] bg-surface p-1" style={{ "--i": 0 } as React.CSSProperties}>
             <Image
               src={site.photo}
               alt={`Portrait of ${site.brandName}`}
@@ -48,6 +49,7 @@ export function Hero({ name, role }: { name: string; role: string }) {
               priority
               className="size-full rounded-3xl object-cover"
             />
+            <HalftonePortrait />
           </div>
         )}
 

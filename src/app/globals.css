@@ -565,6 +565,30 @@ html {
   grid-area: photo;
   aspect-ratio: 3 / 4;
 }
+/* Halftone hologram over the portrait (HalftonePortrait). It bleeds past the frame so a burst can
+   fly out of it; it fades in fast and lets go slower, and never takes the pointer. */
+.halftone {
+  position: absolute;
+  inset: -15%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms var(--ease-out);
+}
+.halftone[data-on] {
+  opacity: 1;
+  transition-duration: 150ms;
+}
+.halftone canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .halftone {
+    display: none;
+  }
+}
 .hero-role {
   grid-area: role;
 }
@@ -2565,6 +2589,10 @@ li:nth-child(even) > .contact-row {
   transition:
     transform 700ms var(--ease-in-out),
     opacity 200ms var(--ease-out);
+}
+/* Following a target while the page scrolls: a glide would trail behind it. */
+.tour[data-snap] {
+  transition: opacity 200ms var(--ease-out);
 }
 .tour[data-visible="true"] {
   opacity: 1;

@@ -18,6 +18,7 @@ const SHOW_MS = 7000;
 export function BriefHint() {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [visible, setVisible] = useState(false);
+  const [snap, setSnap] = useState(false);
 
   useEffect(() => {
     try {
@@ -28,6 +29,20 @@ export function BriefHint() {
     let show = 0;
     let hide = 0;
     let el: HTMLElement | null = null;
+    // The cursor is fixed to the window but the button scrolls with the page: while the hint is up,
+    // scrolling re-aims it every frame (no glide, so it doesn't trail) and hides it while the button is off screen.
+    const follow = () => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const onScreen = r.bottom > 0 && r.top < window.innerHeight;
+      setSnap(true);
+      setVisible(onScreen);
+      if (onScreen) setPos(pointAt(el));
+    };
+    const unfollow = () => {
+      window.removeEventListener("scroll", follow);
+      window.removeEventListener("resize", follow);
+    };
     const start = () => {
       show = window.setTimeout(() => {
         el = document.querySelector<HTMLElement>("[data-brief-hint]");
@@ -41,7 +56,12 @@ export function BriefHint() {
         setVisible(true);
         // Glide the last stretch onto the button once it has faded in.
         window.setTimeout(() => setPos(target), 40);
-        hide = window.setTimeout(() => setVisible(false), SHOW_MS);
+        window.addEventListener("scroll", follow, { passive: true });
+        window.addEventListener("resize", follow);
+        hide = window.setTimeout(() => {
+          unfollow();
+          setVisible(false);
+        }, SHOW_MS);
       }, DELAY_MS);
     };
     if (introFinished()) start();
@@ -50,6 +70,7 @@ export function BriefHint() {
       window.removeEventListener(INTRO_DONE, start);
       clearTimeout(show);
       clearTimeout(hide);
+      unfollow();
     };
   }, []);
 
@@ -57,7 +78,7 @@ export function BriefHint() {
   const close = () => setVisible(false);
 
   return (
-    <GuideCursor pos={pos} visible={visible} lineKey="hint">
+    <GuideCursor pos={pos} visible={visible} snap={snap} lineKey="hint">
       <p>In a hurry? Here&apos;s my one-minute brief.</p>
       <div className="mt-3 flex gap-2">
         <Link href="/brief" className="tour-btn tour-btn-primary pressable" onClick={close}>

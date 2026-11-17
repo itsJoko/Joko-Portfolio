@@ -9,11 +9,14 @@
 export function GuideCursor({
   pos,
   visible,
+  snap = false,
   lineKey,
   children,
 }: {
   pos: { x: number; y: number };
   visible: boolean;
+  /** Jump to `pos` instead of gliding, for following a target as the page scrolls. */
+  snap?: boolean;
   lineKey: string | number;
   children: React.ReactNode;
 }) {
@@ -23,6 +26,7 @@ export function GuideCursor({
     <div
       className="tour"
       data-visible={visible}
+      data-snap={snap || undefined}
       aria-hidden={!visible}
       data-print-hide
       style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
