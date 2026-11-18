@@ -70,3 +70,9 @@ desktop.ini
 
 # design-taste-frontend working files
 /.taste-skill/
+
+# Codex local state
+.codex/
+
+# Blender backups
+*.blend1

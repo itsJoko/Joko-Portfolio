@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DeskPiece } from "@/components/playground/DeskPiece";
+import { IslandPiece } from "@/components/playground/IslandPiece";
 import { playground } from "@/content/playground";
 
 export const metadata: Metadata = { title: "Playground" };
@@ -10,13 +10,13 @@ export default function PlaygroundPage() {
       <h1 className="font-display text-[clamp(3rem,8vw,6rem)] font-semibold leading-[0.95] tracking-[-0.03em]">Playground</h1>
       <p className="mt-6 max-w-prose leading-relaxed text-muted">Small interactive things to play with.</p>
 
-      <section aria-labelledby="desk" className="mt-10">
-        <h2 id="desk" className="text-xl font-semibold">
-          Design desk
+      <section aria-labelledby="island" className="mt-10">
+        <h2 id="island" className="text-xl font-semibold">
+          Studio island
         </h2>
-        <p className="mt-2 max-w-prose leading-relaxed text-muted">The things I work with, and what came out of them.</p>
+        <p className="mt-2 max-w-prose leading-relaxed text-muted">My work as places on a small island: the café holds the projects, the gallery the graphics.</p>
         <div className="mt-6">
-          <DeskPiece />
+          <IslandPiece />
         </div>
       </section>
 
