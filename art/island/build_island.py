@@ -19,6 +19,7 @@ poster). South-east: a bench looking over the lake.
 import bpy, bmesh, math, random, json, os
 import numpy as np
 from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
 
 S = 1.35          # island scale (radius about 24 m)
 DETAIL = True     # bevels, tiles, trims, grass lip
@@ -313,13 +314,23 @@ for dense, w in DENSE:
     D = smin(D, pd - w, 0.9)
 D += 0.09 * np.sin(0.9 * X + 1.3) * np.cos(0.7 * Y - 0.4) + 0.05 * np.sin(1.7 * X - 2.1 * Y)
 
+bpy.context.view_layer.update()
+GROUND_BVH = BVHTree.FromObject(bpy.data.objects["walk_ground"], bpy.context.evaluated_depsgraph_get())
+def ground_z(x, y):
+    """The height of the ground mesh itself at (x, y) (H is the smooth formula; the mesh is flat between its
+    vertices), so things laid on the ground follow what is actually drawn."""
+    hit = GROUND_BVH.ray_cast(Vector((x, y, 60.0)), Vector((0, 0, -1)))
+    return hit[0].z if hit[0] is not None else H(x, y)
+
 def path_mesh(name, D, lift, material):
-    """Marching squares over the field: one mesh for everything where D < 0, with smooth interpolated edges."""
+    """Marching squares over the field: one mesh for everything where D < 0, with smooth interpolated edges,
+    laid on the ground mesh. Merged into larger faces, then triangulated here, so no long concave face gets
+    folded through the grass when it is drawn."""
     b = B(); bm = b.bm; mi = b.mi(material); cache = {}
     def vert(key, x, y):
         v = cache.get(key)
         if v is None:
-            v = cache[key] = bm.verts.new((x, y, H(x, y) + lift))
+            v = cache[key] = bm.verts.new((x, y, ground_z(x, y) + lift))
         return v
     ny, nx = D.shape
     inside = D < 0
@@ -341,7 +352,21 @@ def path_mesh(name, D, lift, material):
                 bm.faces.new(poly).material_index = mi
             except ValueError:
                 pass
-    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(2.5), verts=bm.verts[:], edges=bm.edges[:])
+    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(1.5), verts=bm.verts[:], edges=bm.edges[:])
+    bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method="BEAUTY", ngon_method="BEAUTY")
+    # Drop the crumbs: the field's wobble leaves tiny separate patches along the edges (thin wedges on the grass).
+    left = set(bm.faces); crumbs = []
+    while left:
+        f0 = left.pop(); isl = [f0]; todo = [f0]
+        while todo:
+            f = todo.pop()
+            for e in f.edges:
+                for g in e.link_faces:
+                    if g in left:
+                        left.remove(g); isl.append(g); todo.append(g)
+        if sum(f.calc_area() for f in isl) < 1.5:
+            crumbs += isl
+    bmesh.ops.delete(bm, geom=crumbs, context="FACES")
     return b.obj(name)
 
 path_mesh("walk_path", D, 0.05, "sand")
@@ -415,11 +440,29 @@ for k in range(9):
 for (px, py) in [(x0 + 0.1, LANDING.y - 1.6), (x1 - 0.1, LANDING.y - 1.6), (x0 + 0.1, y_plat + 0.2), (x1 - 0.1, y_plat + 0.2),
                  (px0 + 0.1, py0 + 0.1), (px1 - 0.1, py0 + 0.1), (px0 + 0.1, py1 - 0.1), (px1 - 0.1, py1 - 0.1)]:
     b.box((px, py, TOP - 0.6), (0.2, 0.2, 1.1), "trim")
-for (px, py) in [(px1 - 0.1, py1 - 0.1), (px1 - 0.1, py0 + 0.1), (px0 + 0.1, py0 + 0.1)]:
-    b.box((px, py, TOP + 0.4), (0.18, 0.18, 0.7), "wood")
-b.box((px1 - 0.1, PLATFORM.y, TOP + 0.62), (0.08, 3.2, 0.08), "wood", bevel=False)
+# Railings: the south side, and the east side except a boarding gap by the rowboat's seat (the boat is moored
+# along the east side; Folio steps in through the gap). RAILS and POSTS go into the walk grid as obstacles.
+BOAT_POS, BOAT_RZ = PLATFORM + V(2.6, -0.2), 96
+boat_seat = BOAT_POS + V(math.cos(math.radians(BOAT_RZ)), math.sin(math.radians(BOAT_RZ))) * -0.55   # the stern seat
+GAP_TOP = boat_seat.y + 0.6             # the east rail runs from here north; south of it is open to the boat
+RAILS, POSTS = [], []                   # world (x, y) segments and points, for the walk grid
+for (px, py) in [(px1 - 0.1, py1 - 0.1), (px1 - 0.1, GAP_TOP), (px1 - 0.1, py0 + 0.1), (px0 + 0.1, py0 + 0.1)]:
+    b.box((px, py, TOP + 0.4), (0.18, 0.18, 0.7), "wood"); POSTS.append((px, py))
+b.box((px1 - 0.1, (GAP_TOP + py1 - 0.1) / 2, TOP + 0.62), (0.08, py1 - 0.1 - GAP_TOP, 0.08), "wood", bevel=False)
 b.box((PLATFORM.x, py0 + 0.1, TOP + 0.62), (3.2, 0.08, 0.08), "wood", bevel=False)
+RAILS += [((px1 - 0.1, GAP_TOP), (px1 - 0.1, py1 - 0.1)), ((px0 + 0.1, py0 + 0.1), (px1 - 0.1, py0 + 0.1))]
 b.obj("walk_dock")
+
+def deck_top(name, rects, z, loc=(0, 0, 0), rz=0.0):
+    """A deck's floor for the site: one flat top without the gaps between planks, 12 cm wider than the planks so
+    Folio's feet never slip off an edge. Hidden in renders and on the site; Folio stands on it."""
+    b = B()
+    for (x0_, y0_, x1_, y1_) in rects:
+        b.face([(x0_, y0_, z), (x1_, y0_, z), (x1_, y1_, z), (x0_, y1_, z)], "wood")
+    o = b.obj(name, loc=loc, rz=rz); o.hide_render = True; o.display_type = "WIRE"
+    return o
+DECK_E = 0.12
+deck_top("walk_deck_dock", [(x0 - DECK_E, y_plat, x1 + DECK_E, y_start), (px0 - DECK_E, py0 - DECK_E, px1 + DECK_E, py1 + DECK_E)], TOP + 0.04)
 
 # Life ring on the east railing; a lantern at the platform's north-east corner.
 # A smooth torus in the plane of the railing (Y-Z), four orange and four cream quarters.
@@ -487,7 +530,7 @@ def rowboat():
         b.box((0.72, y, seat_top + 0.035), (0.36, 0.12, 0.025), "wood_light", bevel=False)
     return b
 # Its keel just touches the water (z -0.32), so the floor stays dry and visible inside.
-boat = rowboat().obj("deco_boat", loc=(PLATFORM.x + 2.6, PLATFORM.y - 0.2, -0.31), rz=math.radians(96))
+boat = rowboat().obj("deco_boat", loc=(BOAT_POS.x, BOAT_POS.y, -0.31), rz=math.radians(BOAT_RZ))
 
 # ---------------------------------------------------------------- building helpers
 def prism(b, x0, x1, y0, y1, z0, z1, n, wall=None, wx=None):
@@ -700,8 +743,17 @@ for off in (V(-0.4, 3.6), V(-0.4, -3.6)):   # either side of the notice board
 
 # Lake lookout: a small deck over the shore with two benches facing the water.
 look_dir = angle_to(LOOKOUT, POND); fwd = (POND - LOOKOUT).normalized(); side = V(-fwd.y, fwd.x)
-deck_z = H(LOOKOUT.x, LOOKOUT.y) + 0.12
 LW, LD = 4.4, 3.2                     # deck width (along the shore) and depth (towards the water)
+look_rz = math.radians(facing(look_dir))
+def look_pt(u, v):
+    """A point on the lookout deck (local u across, v towards the back) in world x, y."""
+    c_, s_ = math.cos(look_rz), math.sin(look_rz)
+    return V(LOOKOUT.x + u * c_ - v * s_, LOOKOUT.y + u * s_ + v * c_)
+# High enough that nothing under it pokes through: the ground (and the sand path, 5 cm over it) stays at least
+# 5 cm under the planks across the whole deck and its floor's margin.
+ground_max = max(H(p.x, p.y) for p in (look_pt(u, v) for u in np.linspace(-LW / 2 - 0.15, LW / 2 + 0.15, 11)
+                                        for v in np.linspace(-LD / 2 - 0.15, LD / 2 + 0.15, 9)))
+deck_z = max(H(LOOKOUT.x, LOOKOUT.y) + 0.12, ground_max + 0.06)
 b = B()
 for k in range(int(LD / 0.31)):       # planks across, front (water side) is local -Y
     b.box((0, -LD / 2 + 0.16 + k * 0.31, 0), (LW, 0.28, 0.08), "wood_light" if k % 2 else "wood")
@@ -715,9 +767,20 @@ for (x0_, y0_, x1_, y1_) in [(-LW / 2 + 0.1, -LD / 2 + 0.1, LW / 2 - 0.1, -LD / 
     b.box(((x0_ + x1_) / 2, (y0_ + y1_) / 2, 0.62), (ln + 0.1, 0.09, 0.09), "wood", rz=rz_, bevel=False)   # rail
     for t_ in (0.0, 1.0):
         b.box((x0_ + (x1_ - x0_) * t_, y0_ + (y1_ - y0_) * t_, 0.33), (0.12, 0.12, 0.6), "wood", bevel=False)
-for k, sx in enumerate((-LW / 2 + 0.45, LW / 2 - 0.45)):  # pots in the front corners, inside the rail
-    pot(b, (sx, -LD / 2 + 0.5, 0.04), seed=k)
-b.obj("walk_lookout", loc=(LOOKOUT.x, LOOKOUT.y, deck_z), rz=math.radians(facing(look_dir)))
+# Skirt boards round the back and sides: the raised deck reads as built on the shore, not hovering over it.
+b.box((0, LD / 2 - 0.04, -0.2), (LW, 0.06, 0.36), "trim", bevel=False)
+for sx in (-LW / 2 + 0.03, LW / 2 - 0.03):
+    b.box((sx, 0, -0.2), (0.06, LD, 0.36), "trim", bevel=False)
+b.obj("walk_lookout", loc=(LOOKOUT.x, LOOKOUT.y, deck_z), rz=look_rz)
+# Pots in the front corners, inside the rail: their own objects, so the walk grid keeps Folio out of them.
+for k, sx in enumerate((-LW / 2 + 0.45, LW / 2 - 0.45)):
+    bp = B(); pot(bp, (sx, -LD / 2 + 0.5, 0.04), seed=k)
+    bp.obj(f"block_lookout_pot_{k + 1}", loc=(LOOKOUT.x, LOOKOUT.y, deck_z), rz=look_rz)
+deck_top("walk_deck_lookout", [(-LW / 2 - DECK_E, -LD / 2 - DECK_E, LW / 2 + DECK_E, LD / 2 + DECK_E)], 0.04,
+         loc=(LOOKOUT.x, LOOKOUT.y, deck_z), rz=look_rz)
+fx, bx_ = LW / 2 - 0.1, -LD / 2 + 0.1   # rails: across the front, and the front half of both sides
+for (u0, v0, u1, v1) in [(-fx, bx_, fx, bx_), (-fx, bx_, -fx, 0.2), (fx, bx_, fx, 0.2)]:
+    p0, p1 = look_pt(u0, v0), look_pt(u1, v1); RAILS.append(((p0.x, p0.y), (p1.x, p1.y)))
 bi += 1; bench(f"block_bench_{bi:02d}", LOOKOUT - fwd * 0.55, look_dir, z=deck_z + 0.04)   # towards the back, facing the water
 
 def lamp(name, p):
@@ -889,8 +952,14 @@ at("block_garden", b, GARDEN, 0)
 # Bike rack beside the gallery.
 b = B()
 for (x, y) in [(-1.2, -0.6), (1.2, -0.6), (-1.2, 0.6), (1.2, 0.6)]:
-    b.box((x, y, 1.1), (0.14, 0.14, 2.2), "wood")
-b.box((0, 0, 2.3), (2.9, 1.7, 0.14), "wood_light", rx=0.12)
+    b.box((x, y, 1.1), (0.12, 0.12, 2.2), "wood")
+for s in (-1, 1):                                                            # a small gable roof, tiles like the café's
+    b.box((0, s * 0.5, 2.36), (3.1, 1.12, 0.07), "roof", rx=-s * 0.36, bevel=False)
+b.box((0, 0, 2.56), (3.16, 0.14, 0.09), "roof_dark", bevel=False)            # ridge cap
+b.box((0, 0, 2.2), (2.56, 1.32, 0.08), "trim", bevel=False)                  # the frame the roof sits on
+b.box((0, 0.5, 0.33), (1.5, 0.04, 0.04), "metal", bevel=False)               # the wheel rack the bikes stand in
+for x in (-0.75, 0.75):
+    b.box((x, 0.5, 0.17), (0.04, 0.04, 0.34), "metal", bevel=False)
 def bike(b, x, col):
     """A bicycle along local Y in the plane at x: spoked wheels, diamond frame, saddle, handlebars."""
     WR = 0.32
@@ -914,9 +983,17 @@ def bike(b, x, col):
     for sx in (-0.21, 0.21):
         b.box((x + sx, 0.3, 0.97), (0.09, 0.05, 0.05), "tire", bevel=False)
     b.cone((x + 0.03, bb[0], bb[1]), 0.1, 0.1, 0.02, "metal", seg=10, rot=Matrix.Rotation(math.pi / 2, 4, "Y"))
+RACK = GALLERY + V(3.8, 6.4)
+at("block_bike_rack", b, RACK, 0)
+# The bikes are their own objects (ride_bike_*), origin on the ground between the wheels, front along local +Y,
+# so the site can roll one out and ride it. The rack's shelter covers them, so the walk grid is unchanged.
 for k, col in enumerate(["hue_graphics", "hue_projects"]):
-    bike(b, -0.35 + k * 0.7, col)
-at("block_bike_rack", b, GALLERY + V(3.8, 6.4), 0)
+    bb = B(); bike(bb, 0.0, col)
+    at(f"ride_bike_{k + 1}", bb, RACK + V(-0.35 + k * 0.7, 0), 0)
+# Where a visitor stands to take a bike: in front of the rack's open side nearest a path.
+bike_side = min((1, -1), key=lambda s: D_at(RACK + V(0, s * 1.9)))
+e = bpy.data.objects.new("door_bikes", None); e.empty_display_type = "PLAIN_AXES"; e.empty_display_size = 0.6
+p_ = RACK + V(0, bike_side * 1.9); e.location = (p_.x, p_.y, H(p_.x, p_.y)); coll.objects.link(e)
 
 # ---------------------------------------------------------------- props for the interactions
 # phys_*: each crate, barrel and pot is its own object so the site can give it a physics body (knock-over).
@@ -992,6 +1069,12 @@ b = B(); b.cone((0, 0, 0.03), 0.55, 0.55, 0.05, "paver_light", seg=14)
 at("deco_photo_spot", b, PHOTO)
 e = bpy.data.objects.new("door_photo", None); e.empty_display_type = "PLAIN_AXES"; e.empty_display_size = 0.6
 e.location = (PHOTO.x, PHOTO.y, H(PHOTO.x, PHOTO.y)); coll.objects.link(e)
+# The photo camera: on the plaza side of the frame, at about eye height for a 1.3 m Folio, looking through it.
+cam_dir = (V(0, 0) - PHOTO).normalized(); cp = PHOTO + cam_dir * 3.6
+e = bpy.data.objects.new("cam_photo", None); e.empty_display_type = "SINGLE_ARROW"; e.empty_display_size = 0.5
+e.location = (cp.x, cp.y, H(PHOTO.x, PHOTO.y) + 1.35)
+e.rotation_euler = (Vector((PHOTO.x, PHOTO.y, H(PHOTO.x, PHOTO.y) + 1.1)) - e.location).to_track_quat("Z", "Y").to_euler()
+coll.objects.link(e)
 
 def fence(name, a0, a1):
     b = B(); n = max(3, int(math.radians(abs(a1 - a0)) * R(math.radians(a0)) / 1.4)); prv = None
@@ -1013,15 +1096,23 @@ fence("block_fence_03", 118, 150)
 def on_dock(x, y, pad=0.4):
     return (x0 - pad < x < x1 + pad and y_plat - pad < y < y_start + pad) or (px0 - pad < x < px1 + pad and py0 - pad < y < py1 + pad) \
         or (V(x, y) - (PLATFORM + V(2.6, -0.2))).length < 1.6 + pad
+# Lily pads 4 cm over the water (closer flickers against it at a distance), each flower a small bud standing on
+# its pad, and none within 0.6 m of the dock, the lookout or the boat. The random draws stay exactly as before,
+# so nothing placed after this moves.
+bpy.context.view_layer.update()
+keep_clear = [footprint(bpy.data.objects[n], 0.6) for n in ("walk_dock", "walk_lookout", "deco_boat")]
 b = B()
 for k in range(26):
     a = random.uniform(0, 6.28); r = random.uniform(0.8, POND_R - 0.5)
     x, y = POND.x + r * math.cos(a), POND.y + r * math.sin(a)
     if on_dock(x, y):
         continue
-    b.disc((x, y, -0.3), random.uniform(0.25, 0.45), "lily", seg=7)
+    rad = random.uniform(0.25, 0.45)
+    if any(overlaps(square(x, y, rad), f) for f in keep_clear):
+        continue
+    b.disc((x, y, -0.28), rad, "lily", seg=7)
     if k % 4 == 0:
-        b.disc((x + 0.08, y, -0.295), 0.1, "flower_white")   # resting on its pad
+        b.cone((x + 0.08, y, -0.255), 0.09, 0.04, 0.05, "flower_white", seg=6)
 b.obj("deco_lilies")
 b = B(); a = 0.0
 while a < 2 * math.pi:   # shore stones in small clusters with gaps, not an even ring
@@ -1214,6 +1305,13 @@ for o in [o for o in foot_objs() if o.name.startswith("block_lamp")]:
     mine = footprint(o, 0.05)
     if any(overlaps(mine, footprint(x, 0.05)) for x in foot_objs() if x is not o):
         removed.append(o.name); me = o.data; bpy.data.objects.remove(o, do_unlink=True); bpy.data.meshes.remove(me)
+# Nothing tall between the photo camera and the frame (a lamp there would block every picture).
+cam_o = bpy.data.objects["cam_photo"]
+for o in [o for o in foot_objs() if o.name.startswith("block_lamp")]:
+    a_, c_ = Vector((cam_o.location.x, cam_o.location.y)), Vector((PHOTO.x, PHOTO.y))
+    t_ = max(0.0, min(1.0, (Vector(o.location.xy) - a_).dot(c_ - a_) / (c_ - a_).length_squared))
+    if (Vector(o.location.xy) - (a_ + (c_ - a_) * t_)).length < 1.3:
+        removed.append(o.name); me = o.data; bpy.data.objects.remove(o, do_unlink=True); bpy.data.meshes.remove(me)
 def foot_of(o, pad):
     """Footprint for the audit: trees by their trunk, everything else by its turned bounding box."""
     if o.name.startswith("block_tree"):
@@ -1235,7 +1333,7 @@ feet = {o.name: foot_of(o, -0.03) for o in objs}
 for i_, a_ in enumerate(objs):
     for b_ in objs[i_ + 1:]:
         pair = {a_.name, b_.name}
-        if all(n.startswith("phys_") for n in pair) or ("walk_lookout" in pair and any(n.startswith("block_bench") for n in pair)):
+        if all(n.startswith("phys_") for n in pair) or ("walk_lookout" in pair and any(n.startswith(("block_bench", "block_lookout_pot")) for n in pair)):
             continue
         if overlaps(feet[a_.name], feet[b_.name]):
             if not all(n.startswith("block_tree") for n in pair):   # crowns meeting is fine; trunks are tested
@@ -1293,6 +1391,12 @@ for o in coll.objects:
     else:
         box_obs.append(o)
 round_obs += [(x, y, r * 1.1 + 0.25) for x, y, r in BUSH_OBS]   # brushing a bush is fine, walking into it isn't
+round_obs += [(x, y, 0.09 + FOLIO_R) for x, y in POSTS]          # deck railing posts
+def seg_dist(x, y, a, c):
+    ax_, ay_ = a; cx_, cy_ = c; dx_, dy_ = cx_ - ax_, cy_ - ay_; l2 = dx_ * dx_ + dy_ * dy_ or 1e-9
+    t = max(0.0, min(1.0, ((x - ax_) * dx_ + (y - ay_) * dy_) / l2))
+    return math.hypot(x - (ax_ + dx_ * t), y - (ay_ + dy_ * t))
+RAIL_R = 0.05 + FOLIO_R                                          # deck rails, as capsules
 n_cells = int(2 * NAV_LIM / NAV_RES) + 1
 grid = []
 for i in range(n_cells):             # rows: site z
@@ -1311,17 +1415,69 @@ for i in range(n_cells):             # rows: site z
             ok_ = False
         if ok_ and any(inside_local(o, x, y, FOLIO_R) for o in box_obs):
             ok_ = False
+        if ok_ and any(seg_dist(x, y, a, c) < RAIL_R for a, c in RAILS):
+            ok_ = False
         row.append("1" if ok_ else "0")
     grid.append(row)
-for name in list(DOORS) + ["door_poster", "door_photo"]:
+DOOR_NAMES = list(DOORS) + ["door_poster", "door_photo", "door_bikes"]
+def cell_of(x, y):
+    return int(round((NAV_LIM - y) / NAV_RES)), int(round((x + NAV_LIM) / NAV_RES))   # (row, col)
+for name in DOOR_NAMES:
     o = bpy.data.objects.get(name)
     if o:
-        j = int(round((o.location.x + NAV_LIM) / NAV_RES)); i = int(round((NAV_LIM - o.location.y) / NAV_RES))
+        i, j = cell_of(o.location.x, o.location.y)
         if 0 <= i < n_cells and 0 <= j < n_cells:
             grid[i][j] = "1"
+# Riding: bikes stay on the paths and the plaza (inside the path field, D < 0.1), never on a deck or in water.
+deck_cells = set()
+ride = []
+for i in range(n_cells):
+    row = []
+    for j in range(n_cells):
+        x = -NAV_LIM + j * NAV_RES; y = NAV_LIM - i * NAV_RES
+        dx, dy = x - POND.x, y - POND.y
+        wet = math.hypot(dx, dy) < pond_edge(math.atan2(dy, dx)) + 2.0 and H(x, y) < -0.2
+        if grid[i][j] == "1" and wet:
+            deck_cells.add((i, j))
+        on_look = inside_local(bpy.data.objects["walk_lookout"], x, y, 0.3)
+        row.append("1" if grid[i][j] == "1" and not wet and not on_look and D_at(V(x, y)) < 0.1 else "0")
+    ride.append(row)
+bi_, bj_ = cell_of(*bpy.data.objects["door_bikes"].location.xy)
+ride[bi_][bj_] = "1"
+# The rack stands on the grass: a ride lane from its door to the nearest path, along walkable cells.
+prev_ = {(bi_, bj_): None}; todo_ = [(bi_, bj_)]; end_ = None
+while todo_ and end_ is None:
+    nxt_ = []
+    for c_ in todo_:
+        for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            k_ = (c_[0] + di, c_[1] + dj)
+            if k_ in prev_ or not (0 <= k_[0] < n_cells and 0 <= k_[1] < n_cells) or grid[k_[0]][k_[1]] != "1":
+                continue
+            prev_[k_] = c_
+            if ride[k_[0]][k_[1]] == "1" and math.dist(k_, (bi_, bj_)) > 1.5:
+                end_ = k_; break
+            nxt_.append(k_)
+        if end_:
+            break
+    todo_ = nxt_
+lane = 0
+while end_ is not None:
+    ride[end_[0]][end_[1]] = "1"; end_ = prev_[end_]; lane += 1
+def flood(g, start):
+    seen = {start}; todo = [start]
+    while todo:
+        i, j = todo.pop()
+        for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            k = (i + di, j + dj)
+            if k not in seen and 0 <= k[0] < n_cells and 0 <= k[1] < n_cells and g[k[0]][k[1]] == "1":
+                seen.add(k); todo.append(k)
+    return seen
+ride_reach = flood(ride, (bi_, bj_))       # keep only the rideable area joined to the rack (drop scraps)
+ride = [["1" if (i, j) in ride_reach else "0" for j in range(n_cells)] for i in range(n_cells)]
 nav = {"res": NAV_RES, "x0": -NAV_LIM, "z0": -NAV_LIM, "size": n_cells,
-       "note": "rows run along +z (site), columns along +x; '1' walkable. Generated by art/island/build_island.py.",
-       "rows": ["".join(r) for r in grid]}
+       "note": "rows run along +z (site), columns along +x; '1' walkable (rows) or rideable by bike (ride). "
+               "Generated by art/island/build_island.py.",
+       "rows": ["".join(r) for r in grid], "ride": ["".join(r) for r in ride]}
 with open(r"C:/Projects/joko-portfolio/public/playground/island-nav.json", "w", encoding="utf-8") as fh:
     json.dump(nav, fh, separators=(",", ":"))
 
@@ -1335,8 +1491,59 @@ for i, row in enumerate(grid):
             b.bm.faces.new([b.bm.verts.new((x - h, y - h, z)), b.bm.verts.new((x + h, y - h, z)), b.bm.verts.new((x + h, y + h, z)), b.bm.verts.new((x - h, y + h, z))]).material_index = red
 dbg = b.obj("debug_nav"); coll.objects.unlink(dbg); prev.objects.link(dbg); dbg.hide_viewport = True; dbg.hide_render = True
 
+# ---------------------------------------------------------------- audits (all expected empty or true)
+reach_ = flood(grid, cell_of(*bpy.data.objects["spawn"].location.xy))
+def reachable_near(x, y, r):
+    return any(math.hypot(x - (-NAV_LIM + j * NAV_RES), y - (NAV_LIM - i * NAV_RES)) <= r for i, j in reach_)
+floors_ = [o for o in coll.objects if o.type == "MESH" and o.name.startswith("walk_")
+           and not o.name.startswith(("walk_dock", "walk_lookout"))]   # what the site stands Folio on
+def floor_hits(x, y):
+    """Every floor under (x, y), highest first, as (z, name)."""
+    out = []
+    for o in floors_:
+        inv = o.matrix_world.inverted(); dr = (inv.to_3x3() @ Vector((0, 0, -1))).normalized()
+        ok, loc, nrm, _ = o.ray_cast(inv @ Vector((x, y, 8.0)), dr)
+        if ok:
+            out.append(((o.matrix_world @ loc).z, o.name))
+    return sorted(out, reverse=True)
+AUDIT = {"unreachable_doors": [], "unreachable_planes": [], "unreachable_benches": [], "doors_off_floor": [],
+         "deck_pokes": [], "deck_cells_without_floor": 0, "phys_home_blocked": []}
+for name in DOOR_NAMES:
+    o = bpy.data.objects.get(name)
+    if not o:
+        continue
+    if cell_of(*o.location.xy) not in reach_:
+        AUDIT["unreachable_doors"].append(name)
+    h = floor_hits(o.location.x, o.location.y)
+    if not h or abs(h[0][0] - o.location.z) > 0.15:
+        AUDIT["doors_off_floor"].append((name, round(o.location.z, 2), round(h[0][0], 2) if h else None))
+for o in coll.objects:
+    if o.name.startswith("collect_plane") and not reachable_near(o.location.x, o.location.y, 1.7):
+        AUDIT["unreachable_planes"].append(o.name)
+    if o.name.startswith("block_bench") and not reachable_near(o.location.x, o.location.y, 1.6):
+        AUDIT["unreachable_benches"].append(o.name)
+    if o.name.startswith("phys_"):   # a prop's home must be free ground (props bounce off blocked cells)
+        ci, cj = cell_of(*o.location.xy)
+        if grid[ci][cj] != "1":
+            AUDIT["phys_home_blocked"].append(o.name)
+look_o = bpy.data.objects["walk_lookout"]
+for i in range(n_cells):
+    for j in range(n_cells):
+        x = -NAV_LIM + j * NAV_RES; y = NAV_LIM - i * NAV_RES
+        if grid[i][j] != "1" or not ((i, j) in deck_cells or inside_local(look_o, x, y, 0.0)):
+            continue
+        h = floor_hits(x, y)
+        if not h or not h[0][1].startswith("walk_deck"):
+            if not h:
+                AUDIT["deck_cells_without_floor"] += 1
+            else:
+                AUDIT["deck_pokes"].append((round(x, 1), round(-y, 1), h[0][1]))
+AUDIT["ride_cells"] = sum(r.count("1") for r in ride); AUDIT["ride_reachable_from_rack"] = len(ride_reach)
+AUDIT["ride_lane_cells"] = lane
+AUDIT["deck_pokes"] = AUDIT["deck_pokes"][:10]
+
 ISLAND_STATS = {
-    "lamps_removed": removed, "overlaps": OVERLAPS,
+    "lamps_removed": removed, "overlaps": OVERLAPS, "audit": AUDIT,
     "walkable_cells": sum(r.count("1") for r in nav["rows"]),
     "objects": len(coll.objects),
     "triangles": sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in coll.objects if o.type == "MESH"),
