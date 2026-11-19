@@ -3,8 +3,9 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { islandLandmarks, type Landmark, type LandmarkId } from "@/content/island";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { PiPaperPlaneTilt } from "react-icons/pi";
+import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Mode } from "./IslandScene";
 
@@ -45,6 +46,18 @@ function Poster() {
   );
 }
 
+// Found paper planes are remembered in this browser; a lit campfire, for this visit.
+const PLANES_KEY = "island-planes";
+const FIRE_KEY = "island-fire";
+function readPlanes(): Set<number> {
+  try {
+    const v = JSON.parse(localStorage.getItem(PLANES_KEY) ?? "[]");
+    return new Set(Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n >= 0 && n < planeFacts.length) : []);
+  } catch {
+    return new Set();
+  }
+}
+
 function LandmarkLinks({ landmark, className = "" }: { landmark: Landmark; className?: string }) {
   return (
     <ul className={`flex flex-wrap gap-x-5 gap-y-2 ${className}`}>
@@ -78,6 +91,43 @@ export function IslandPiece() {
   const [goTo, setGoTo] = useState<{ id: LandmarkId; n: number } | null>(null);
   const [walked, setWalked] = useState(false);
   const [pointerIn, setPointerIn] = useState(false);
+  const [sitting, setSitting] = useState(false);
+  const [collected, setCollected] = useState<ReadonlySet<number>>(() => new Set());
+  const [found, setFound] = useState<number | null>(null); // the plane just found, for its card
+  const [fireLit, setFireLit] = useState(false);
+  const [cheerUntil, setCheerUntil] = useState(0);
+  // Read what this browser remembers once mounted (storage isn't available during server render).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from browser storage after mount
+    setCollected(readPlanes());
+    try {
+      setFireLit(sessionStorage.getItem(FIRE_KEY) === "1");
+    } catch {}
+  }, []);
+  // A found plane's card stays up for a while, longer for the last one.
+  useEffect(() => {
+    if (found === null) return;
+    const id = window.setTimeout(() => setFound(null), collected.size === planeFacts.length ? 9000 : 6500);
+    return () => window.clearTimeout(id);
+  }, [found, collected.size]);
+
+  const collect = (index: number) => {
+    setCollected((prev) => {
+      const next = new Set(prev).add(index);
+      try {
+        localStorage.setItem(PLANES_KEY, JSON.stringify([...next]));
+      } catch {}
+      if (next.size === planeFacts.length && prev.size < planeFacts.length) setCheerUntil(performance.now() + 2600);
+      return next;
+    });
+    setFound(index);
+  };
+  const lightFire = () => {
+    setFireLit(true);
+    try {
+      sessionStorage.setItem(FIRE_KEY, "1");
+    } catch {}
+  };
   const reducedMotion = useMedia("(prefers-reduced-motion: reduce)");
   const finePointer = useMedia("(hover: hover) and (pointer: fine)");
   const webgl = useSyncExternalStore(
@@ -126,6 +176,12 @@ export function IslandPiece() {
                 onHover={setHovered}
                 goTo={goTo}
                 onNear={setNear}
+                onSit={setSitting}
+                collected={collected}
+                onCollect={collect}
+                fireLit={fireLit}
+                onFireLit={lightFire}
+                cheerUntil={cheerUntil}
                 keysActive={pointerIn}
                 labels={labels}
                 fogColor={fogColor}
@@ -157,10 +213,35 @@ export function IslandPiece() {
               {mode === "walk" ? "See the whole island" : "Walk around"}
             </button>
 
-            {/* How to move, until the first step. */}
-            {mode === "walk" && !walked && (
+            {/* Paper planes found so far. */}
+            {(mode === "walk" || collected.size > 0) && (
+              <p
+                aria-label={`Paper planes found: ${collected.size} of ${planeFacts.length}`}
+                className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-bg px-3 py-2 text-sm font-medium tabular-nums text-ink"
+              >
+                <PiPaperPlaneTilt aria-hidden className="size-4" />
+                {collected.size} / {planeFacts.length}
+              </p>
+            )}
+
+            {/* A plane just found: what it says. */}
+            {found !== null && (
+              <div role="status" className="absolute left-3 top-14 max-w-xs rounded-3xl bg-bg p-4 text-ink">
+                <p className="text-sm text-muted">
+                  {collected.size === planeFacts.length ? "All six found. Thanks for exploring!" : `Paper plane ${collected.size} of ${planeFacts.length}`}
+                </p>
+                <p className="mt-1 leading-snug">{planeFacts[found]}</p>
+              </div>
+            )}
+
+            {/* How to move, until the first step; how to get up from a bench. */}
+            {mode === "walk" && (!walked || sitting) && (
               <p className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-bg px-4 py-2 text-sm text-ink">
-                {finePointer ? "Click anywhere to walk, or use WASD" : "Tap anywhere to walk"}
+                {sitting
+                  ? `${finePointer ? "Click" : "Tap"} anywhere to get up`
+                  : finePointer
+                    ? "Click anywhere to walk, or use WASD"
+                    : "Tap anywhere to walk"}
               </p>
             )}
 

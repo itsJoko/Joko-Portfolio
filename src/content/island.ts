@@ -12,6 +12,17 @@ export type Landmark = {
   links: { label: string; href: string }[];
 };
 
+// What each hidden paper plane says when found, in the order of collect_plane_01..06 in the island file.
+// Facts only from the CV and PRODUCT.md; never invent one.
+export const planeFacts: string[] = [
+  "5th of 106 schools at SIKAPtala 2026, a national design competition.",
+  "Top 12 of 48+ universities at the Batang Techno Hackathon 2026, with ResQLine.",
+  "Freelancing since September 2026: a client's Shopify storefront, CryoLipo, designed in Figma and built in Liquid.",
+  "Design Team Leader of OCTA's software committee, August 2024 to May 2026: the OCTA website and voting system.",
+  "Gave two Figma workshops, in my second and fourth years.",
+  "BS Computer Science in Intelligent Systems at LSPU, expected 2027.",
+];
+
 export const islandLandmarks: Landmark[] = [
   {
     id: "studio",
