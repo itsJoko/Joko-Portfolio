@@ -100,4 +100,8 @@ shared, so changing `grass` recolours all grass. A rebuild resets colours; tell 
 - Don't rename objects or materials (`lm_studio`, `walk_path`, `door_studio`, `grass`...).
 - No image textures.
 - Keep the island centred where it is.
-- Ask Claude to export when you're done; the site loads `public/playground/island.glb`.
+- Ask Claude to export when you're done; the site loads `public/playground/island.glb` (and `island-lite.glb`
+  on phones). Exporting is three scripts in a row, build, bake the shading, export (see `docs/studio.md`,
+  Part 4); after a hand edit, re-run the bake before the export, or the shading won't match.
+- Don't delete or move `walk_deck_dock` / `walk_deck_lookout` (the invisible floors Folio stands on), or the
+  empties `spawn`, `door_*`, `cam_photo`.

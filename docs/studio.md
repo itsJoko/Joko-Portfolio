@@ -250,47 +250,59 @@ Each step ends with a stop so Joko can commit.
 ## Part 4 — Remaining island work (checklist, 2026-11-18)
 
 How we work from here: Blender work is done as one batch and checked in Blender (renders from the walk
-camera, `ISLAND_STATS` audits); then the island is exported **once** (`art/island/export_island.py`: glb, walk
-grid, poster); then the site side, browser checks, lint and build. A stop for Joko's commit after each block.
+camera, `ISLAND_STATS` audits); then the island is exported **once**; then the site side, browser checks, lint
+and build. A stop for Joko's commit after each block. The run order in Blender is always:
 
-**A. Dock floor fix (site only, done; no export needed)**
-- [x] Folio walked under the dock. Two causes: the spawn sat on the lake bed under the platform (`H + TOP`
-  instead of the deck top), and a floor ray could slip through a 5 cm gap between planks and drop Folio onto
-  the lake bed, with no way back up (a 0.45 m step limit). Now: the first frame finds the floor from above,
-  a big drop looks 8 cm around for a plank (`GAP_PROBES`), and a deck within 1.2 m above always wins.
+```python
+exec(open(r"C:/Projects/joko-portfolio/art/island/build_island.py").read())   # island, walk grid, audits
+exec(open(r"C:/Projects/joko-portfolio/art/island/bake_ao.py").read())        # baked shading (about 35 s)
+exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # glb, lite glb, poster, save
+```
 
-**B. Blender batch (one export at the end)**
-- [ ] Spawn empty on the deck top (`TOP + 0.04`; the script is fixed, it lands with this export).
-- [ ] Lookout back edge: the sand path and ground poke 1–2 cm up through the deck; end the path before the
-  deck or tuck the ground under it.
-- [ ] Lookout pots: built into `walk_lookout`, so the grid doesn't block them (the site ignores them as floor
-  for now, so Folio walks through them instead of climbing onto them); make them their own blocked objects.
-- [ ] Rails block: the dock and lookout rails and posts go into the walk grid as obstacles padded by
-  `FOLIO_R` (today decks are floors only, so Folio walks through the lookout's side rails from the shore and
-  its body clips the dock railing).
-- [ ] Lily pads: the flower sits 5 mm over its pad and the pad 2 cm over the water, so they flicker
-  (z-fighting); lift both a few cm, and keep pads at least 0.6 m from the dock, lookout and boat (one sits in
-  the corner where the walkway meets the platform).
-- [ ] Deck colliders: a flat, gap-free `walk_*` top for the dock and lookout (the visible planks become
-  decoration), so the site needs no plank-gap probes.
-- [ ] New audits in the build: spawn and doors stand on a floor; no walkable cell has another floor within
-  10 cm above its top surface (catches anything poking through a deck); planks leave no gap wider than 6 cm.
-- [ ] Bikes: a clean, Folio-sized bike (wheels, frame, seat, handlebar) and the rack, each bike its own
-  `ride_bike_*` object with its parking spot; rideable area (paths and plaza) written into the walk grid as a
-  second layer.
-- [ ] Photo spot: check the frame and `door_photo` from the photo camera's angle; an empty for the camera.
-- [ ] Baked shading: ambient occlusion baked into a vertex colour layer and multiplied into the base colour.
-- [ ] Phone detail level: a lighter `island-lite.glb` (fewer tufts and flowers, simpler trees), aiming at
-  about half the triangles.
-- [ ] Polish pass: render each area (café, garden, plaza, gallery, board, commons, lake, lookout, dock) from
-  the walk camera; fix anything floating, clipping or overlapping; `ISLAND_STATS` clean (overlaps,
-  unreachable, walkable_in_water, floating all empty).
-- [ ] Export once; poster updated.
+**A. Dock floor fix (site only, done)**
+- [x] Folio walked under the dock: the spawn sat on the lake bed under the platform, and a floor ray could
+  slip through a 5 cm gap between planks. First fixed on the site with probes; replaced in B by deck floors.
 
-**C. Site batch (after the export)**
-- [ ] Riding: hop on at the rack, ride faster on the ride layer, park back; others will see you riding.
-- [ ] Photo spot: stand in the frame, take a picture of your Folio (PNG download).
-- [ ] Load `island-lite.glb` on phones and weak devices; vertex colours on in the materials.
+**B. Blender batch (done 2026-11-18, exported once)**
+- [x] Spawn on the deck top.
+- [x] Deck floors: `walk_deck_dock` and `walk_deck_lookout`, one flat top each without the plank gaps and 12 cm
+  wider than the planks, hidden in renders and on the site. Folio stands on these; the visible `walk_dock` and
+  `walk_lookout` (planks, rails, posts) are only looked at. The site's plank probes are gone.
+- [x] Lookout: raised so the ground and path stay at least 5 cm under its planks (deck 0.22 m, a 0.23 m step up
+  from the shore), with skirt boards round the back and sides so it doesn't hover; its two pots are their own
+  blocked objects (`block_lookout_pot_*`).
+- [x] Rails block: dock and lookout rails (as capsules) and posts are walk-grid obstacles padded by `FOLIO_R`.
+  The dock's east railing has a boarding gap by the rowboat's seat, so stepping into the boat doesn't go
+  through it.
+- [x] Lily pads 4 cm over the water, the flower a small bud on its pad; none within 0.6 m of the dock, lookout
+  or boat. The random draws are unchanged, so nothing placed after them moved.
+- [x] Paths: laid on the ground mesh itself (not the smooth formula), triangulated in Blender, and tiny
+  separate patches under 1.5 m² removed (they showed as thin wedges along the path edges).
+- [x] Bikes: two `ride_bike_*` objects (origin on the ground between the wheels, front along local +Y) under a
+  gable-roofed shelter with a wheel rack (`block_bike_rack`); `door_bikes` on its open side nearest a path; a
+  ride layer (`ride` in `island-nav.json`, 863 cells: paths and plaza, never decks or water, joined to the rack by
+  a short lane).
+- [x] Photo spot: `cam_photo` (an empty on the plaza side of the frame, at Folio's eye height, aimed through
+  it); the lamp that stood in the shot is removed by the build.
+- [x] Baked shading: `bake_ao.py` casts 14 rays per face corner against the island's solid things and writes
+  an "AO" colour layer; the glTF export carries it as vertex colours and three.js multiplies it into every
+  material. Kept soft (darkest 62%, within 0.8 m) and only on buildings, props and plants: the ground, paths
+  and anything lying flat on them stay unbaked and don't shade anything (their big triangles smeared the
+  shading into streaks and halos round the path stones; the real-time shadows already ground things there).
+  `pack_colors.mjs` packs those colours to 8 bits with meshopt (Blender leaves them raw, about 0.9 MB).
+- [x] Phone version: `island-lite.glb`, without flowers, grass tufts, path stones and the path-edge band, the
+  busiest meshes simplified: 31.6k triangles (full: 57k), 1.1 MB (full: 1.7 MB).
+- [x] Audits in the build, all clean: overlaps none; every door, plane and bench reachable; doors and spawn on a
+  floor; nothing poking through a deck; every prop's home free; the ride layer is one area joined to the rack.
+- [x] Polish renders from the walk camera's angle: dock, boat gap, lookout, plaza, café, garden, gallery, board,
+  bikes, photo spot, commons.
+- [x] Exported once: `island.glb` 1.7 MB, `island-lite.glb` 1.1 MB, poster 105 KB. The site reads the deck
+  floors (the only site change this needed).
+
+**C. Site batch (next)**
+- [ ] Riding: hop on at `door_bikes` (the bike rolls out of the rack), ride faster on the ride layer, park back.
+- [ ] Photo spot: stand in the frame, take a picture of your Folio from `cam_photo` (PNG download).
+- [ ] Load `island-lite.glb` on phones and weak devices.
 - [ ] Browser checks (dock, lookout, boat, benches, props, bikes, photo), lint, build. Stop for a commit.
 
 **D. Later phases** (as in Part 3): ambience (day and night with the theme, living details, opt-in sound),
