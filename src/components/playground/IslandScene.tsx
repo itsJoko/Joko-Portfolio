@@ -21,32 +21,7 @@ const PLANE_NEAR = 1.7;    // walking this close collects a paper plane (some fl
 const DOWN = new THREE.Vector3(0, -1, 0);
 const STEP = 0.45;        // the highest step Folio walks up
 const DECK_REACH = 1.2;   // a deck above Folio within this always wins (see floorY)
-const GAP_PROBES = [[0.08, 0], [-0.08, 0], [0, 0.08], [0, -0.08]];   // around Folio's feet, across plank gaps
-const EDGE_PROBES = Array.from({ length: 8 }, (_, k) => [0.3 * Math.cos(k * Math.PI / 4), 0.3 * Math.sin(k * Math.PI / 4)]);
-const GAP_DROP = 0.15;   // a drop bigger than this in one frame: check for a plank gap
 const REGROUND = 1.0;     // first frame or getting up: look for the floor from this far above (not onto a rail)
-
-/** The height most of a deck's upward-facing area is at (its planks; rails and posts are small). */
-function plankTop(mesh: THREE.Mesh) {
-  const pos = mesh.geometry.getAttribute("position"), idx = mesh.geometry.index;
-  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3();
-  const area = new Map<number, number>();
-  const tris = idx ? idx.count / 3 : pos.count / 3;
-  for (let t = 0; t < tris; t++) {
-    const [i, j, k] = idx ? [idx.getX(3 * t), idx.getX(3 * t + 1), idx.getX(3 * t + 2)] : [3 * t, 3 * t + 1, 3 * t + 2];
-    a.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
-    b.fromBufferAttribute(pos, j).applyMatrix4(mesh.matrixWorld);
-    c.fromBufferAttribute(pos, k).applyMatrix4(mesh.matrixWorld);
-    n.crossVectors(b.clone().sub(a), c.clone().sub(a));
-    const len = n.length();
-    if (len < 1e-9 || n.y / len < 0.95) continue;               // upward faces only
-    const bin = Math.round(((a.y + b.y + c.y) / 3) * 100);       // 1 cm bins
-    area.set(bin, (area.get(bin) ?? 0) + len / 2);
-  }
-  let best = 0, top = -Infinity;
-  for (const [bin, s] of area) if (s > best) { best = s; top = bin / 100; }
-  return top;
-}
 
 export type Mode = "overview" | "walk";
 
@@ -118,18 +93,13 @@ function World(props: SceneProps) {
       const flat = /^(walk_ground|walk_path|water_pond|island_base|deco_(path|paving|grass|lilies|photo_spot))/.test(name);
       mesh.castShadow = !flat;
       mesh.receiveShadow = true;
-      // Floors: the walk_* surfaces, but not the potted plants built into a deck (Folio doesn't climb pots).
-      const mat = (mesh.material as THREE.Material)?.name ?? "";
-      if (/^walk_/.test(name) && !(/^walk_(dock|lookout)/.test(name) && !/^(wood|trim)/.test(mat))) floors.push(mesh);
+      // Floors: the ground, the paths and each deck's flat top (walk_deck_*, gap-free and a little wider than the
+      // planks; hidden). The visible dock and lookout (planks, rails, posts) are only looked at.
+      if (/^walk_deck_/.test(name)) mesh.visible = false;
+      if (/^walk_/.test(name) && !/^walk_(dock|lookout)/.test(name)) floors.push(mesh);
     });
     root.updateMatrixWorld(true);
-    // Each deck's plank-top height, so the deck rule in floorY lifts Folio onto the planks, never onto a rail.
-    const decks = new Map<THREE.Object3D, number>();
-    // Only the wood parts: a deck object also holds its posts (trim) and, on the lookout, potted plants.
-    for (const f of floors) {
-      const mat = (f as THREE.Mesh).material as THREE.Material;
-      if (/^walk_(dock|lookout)/.test(nameOf(f)) && /^wood/.test(mat?.name ?? "")) decks.set(f, plankTop(f as THREE.Mesh));
-    }
+    const decks = new Set<THREE.Object3D>(floors.filter((f) => /^walk_deck_/.test(nameOf(f))));
 
     const marks: Mark[] = [];
     for (const l of islandLandmarks) {
@@ -269,30 +239,17 @@ function World(props: SceneProps) {
 
   /**
    * The height of the floor under (x, z): the highest surface no more than a step above where Folio is now.
-   * A deck (dock, lookout) wins from further below too: nothing walkable is under a deck, so if Folio is ever
-   * beneath one (spawned on the lake bed, an old grid), it comes up onto the planks instead of walking under them.
+   * A deck's flat top (walk_deck_*, gap-free, wider than the planks) wins from further below too: nothing walkable
+   * is under a deck, so if Folio is ever beneath one, it comes up onto it instead of walking under the planks.
    */
-  const floorAt = (x: number, z: number, from: number, planksOnly = false) => {
+  const floorY = (x: number, z: number, from: number) => {
     const { ray, probe } = scratch.current;
     probe.set(x, from + 4, z);
     ray.set(probe, DOWN);
     for (const hit of ray.intersectObjects(live.current.floors, false)) {
-      const top = live.current.decks.get(hit.object);
-      const planks = top !== undefined && Math.abs(hit.point.y - top) < 0.03;
-      if (planksOnly && !planks) continue;
-      if (hit.point.y <= from + (planks ? DECK_REACH : STEP)) return hit.point.y;
+      if (hit.point.y <= from + (live.current.decks.has(hit.object) ? DECK_REACH : STEP)) return hit.point.y;
     }
-    return -Infinity;
-  };
-  const floorY = (x: number, z: number, from: number) => {
-    let y = floorAt(x, z, from);
-    // A drop is often a ray slipping between two deck planks (5 cm gaps): Folio's feet span the gap, so look a
-    // little around and stand on the highest floor found. Walking downhill drops only a few cm a frame.
-    if (y < from - GAP_DROP) for (const [ox, oz] of GAP_PROBES) y = Math.max(y, floorAt(x + ox, z + oz, from));
-    // Still dropping: Folio's centre may be a few cm past a deck's edge (the walk grid keeps its body over the
-    // planks, not every point of the cell). Planks within reach of its feet hold it up; it never drops in the lake.
-    if (y < from - GAP_DROP) for (const [ox, oz] of EDGE_PROBES) y = Math.max(y, floorAt(x + ox, z + oz, from, true));
-    return Number.isFinite(y) ? y : from;
+    return from;
   };
 
   const standUp = () => {
@@ -343,7 +300,7 @@ function World(props: SceneProps) {
       state: () => ({ x: walker.current.pos.x, y: walker.current.pos.y, z: walker.current.pos.z, sit: walker.current.sit, seated: seat.current.on }),
       // The floor rule itself: where Folio would stand at (x, z), coming from height y.
       floorAt: (x: number, z: number, y: number) => floorY(x, z, y),
-      decks: () => [...live.current.decks].map(([o, top]) => [nameOf(o), top]),
+      decks: () => [...live.current.decks].map((o) => nameOf(o)),
       // Every floor surface under (x, z), top first: name and height.
       floors: (x: number, z: number) => {
         const r = new THREE.Raycaster(new THREE.Vector3(x, 20, z), DOWN);
@@ -665,7 +622,7 @@ function World(props: SceneProps) {
       const moved = toys.current.step(
         dt,
         pusher,
-        (x, z) => { const y = floorAt(x, z, 6); return Number.isFinite(y) ? y : 6; },   // one ray each: props are cheap
+        (x, z) => floorY(x, z, 6),
         (x, z) => (g ? !canStand(g, { x, z }) : false),
       );
       if (moved) busy = true;
