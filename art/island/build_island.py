@@ -369,10 +369,11 @@ b.cone((0, 0, 0.74), 1.72, 1.72, 0.04, "grass", seg=32)
 b.cone((0, 0, 1.9), 0.42, 0.28, 2.4, "trim")
 for (x, y, z, s, n) in [(0, 0, 4.0, 1.9, "leaf"), (1.2, 0.5, 3.5, 1.25, "leaf_dark"), (-1.1, -0.6, 3.6, 1.2, "leaf"), (0.2, -1.1, 4.4, 1.0, "leaf"), (-0.4, 1.0, 4.6, 1.0, "leaf_dark")]:
     b.ico((x, y, z), (s, s, s * 0.85), n)
-for k in range(10):
-    t = k * 0.63; b.ico((1.35 * math.cos(t), 1.35 * math.sin(t), 0.9), (0.32, 0.32, 0.26), "leaf_dark" if k % 2 else "leaf")
+for k in range(10):   # bushes round the tree, with flowers growing on them (nothing floats)
+    t = k * 0.63; c = (1.35 * math.cos(t), 1.35 * math.sin(t), 0.9)
+    b.ico(c, (0.32, 0.32, 0.26), "leaf_dark" if k % 2 else "leaf")
     if k % 2 == 0:
-        b.cone((1.55 * math.cos(t + 0.3), 1.55 * math.sin(t + 0.3), 1.0), 0.12, 0.12, 0.03, ["flower_white", "flower_purple", "flower_yellow"][k % 3], seg=5)
+        flowers_on(b, c, 0.32, 0.26, (["flower_white", "flower_purple", "flower_yellow"][k % 3],), n=3, seed=k)
 b.obj("block_planter", loc=(0, 0, H(0, 0)))
 
 if DETAIL:
@@ -421,11 +422,19 @@ b.box((PLATFORM.x, py0 + 0.1, TOP + 0.62), (3.2, 0.08, 0.08), "wood", bevel=Fals
 b.obj("walk_dock")
 
 # Life ring on the east railing; a lantern at the platform's north-east corner.
-b = B()
-for k in range(12):
-    a = 2 * math.pi * k / 12
-    b.box((0, 0.36 * math.cos(a), 0.36 * math.sin(a)), (0.1, 0.21, 0.13), "hue_projects" if (k // 3) % 2 == 0 else "cream", rx=a + math.pi / 2, bevel=False)
-b.obj("deco_lifering", loc=(px1 - 0.02, PLATFORM.y + 0.6, TOP + 0.35))
+# A smooth torus in the plane of the railing (Y-Z), four orange and four cream quarters.
+b = B(); bm_ = b.bm; RM, RT, NU, NV = 0.34, 0.075, 32, 10
+ring = [[bm_.verts.new((RT * math.sin(2 * math.pi * v / NV),
+                        (RM + RT * math.cos(2 * math.pi * v / NV)) * math.cos(2 * math.pi * u / NU),
+                        (RM + RT * math.cos(2 * math.pi * v / NV)) * math.sin(2 * math.pi * u / NU))) for v in range(NV)] for u in range(NU)]
+oi, ci = b.mi("hue_projects"), b.mi("cream")
+for u in range(NU):
+    for v in range(NV):
+        f = bm_.faces.new((ring[u][v], ring[(u + 1) % NU][v], ring[(u + 1) % NU][(v + 1) % NV], ring[u][(v + 1) % NV]))
+        f.material_index = oi if (u // (NU // 8)) % 2 == 0 else ci
+        f.smooth = True
+bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:])
+b.obj("deco_lifering", loc=(px1 + 0.06, PLATFORM.y + 0.6, TOP + 0.36), smooth=True)
 
 # ---------------------------------------------------------------- rowboat: a hollow hull with seats and oars
 def rowboat():
@@ -469,9 +478,13 @@ def rowboat():
             f.material_index = i_
     for x in (-0.55, 0.4):
         b.box((x, 0, top(x) - 0.16), (0.22, 2 * (half_w(x) - 0.09), 0.05), "trim", bevel=False)
-    for sgn in (-1, 1):   # oars resting along the sides
-        b.cone((0.1, sgn * 0.28, top(0.1) - 0.06), 0.03, 0.03, 2.3, "wood_light", seg=6, rot=Matrix.Rotation(math.pi / 2, 4, "Y") @ Matrix.Rotation(sgn * 0.06, 4, "X"))
-        b.box((1.15, sgn * 0.3, top(0.1) - 0.06), (0.5, 0.16, 0.03), "wood_light", bevel=False)
+    # Oars lying inside the hull, resting on both seats: 1.8 m long, between x -1.0 and 0.8, where the hull is
+    # wider than they are, so nothing pokes through the sides or the bow.
+    seat_top = min(top(-0.55), top(0.4)) - 0.16 + 0.025
+    for sgn in (-1, 1):
+        y = sgn * 0.17
+        b.cone((-0.1, y, seat_top + 0.035), 0.03, 0.03, 1.5, "wood_light", seg=6, rot=Matrix.Rotation(math.pi / 2, 4, "Y"))
+        b.box((0.72, y, seat_top + 0.035), (0.36, 0.12, 0.025), "wood_light", bevel=False)
     return b
 # Its keel just touches the water (z -0.32), so the floor stays dry and visible inside.
 boat = rowboat().obj("deco_boat", loc=(PLATFORM.x + 2.6, PLATFORM.y - 0.2, -0.31), rz=math.radians(96))
@@ -625,27 +638,51 @@ at("lm_poster", b, lm_poster_pos, facing(angle_to(lm_poster_pos, COMMONS)))
 
 for name, p in DOORS.items():
     e = bpy.data.objects.new(name, None); e.empty_display_type = "PLAIN_AXES"; e.empty_display_size = 0.6
-    e.location = (p.x, p.y, H(p.x, p.y) + (TOP if name == "spawn" else 0)); coll.objects.link(e)
+    # The spawn is on the dock platform: the deck top (planks at TOP, 8 cm thick), not the lake bed under it.
+    e.location = (p.x, p.y, TOP + 0.04 if name == "spawn" else H(p.x, p.y)); coll.objects.link(e)
 bpy.data.objects["door_poster"].location = (lm_poster_pos.x + 1.4 * math.cos(math.radians(angle_to(lm_poster_pos, COMMONS))),
                                             lm_poster_pos.y + 1.4 * math.sin(math.radians(angle_to(lm_poster_pos, COMMONS))),
                                             H(lm_poster_pos.x, lm_poster_pos.y))
 
 # ---------------------------------------------------------------- props
+FOOT_PREFIX = ("block_", "lm_", "phys_", "walk_lookout")
+def footprint(o, pad=0.0):
+    """An object's real footprint on the ground: its bounding box, turned with it, as four world (x, y) corners."""
+    mw = o.matrix_world; xs = [c[0] for c in o.bound_box]; ys = [c[1] for c in o.bound_box]
+    x0_, x1_, y0_, y1_ = min(xs) - pad, max(xs) + pad, min(ys) - pad, max(ys) + pad
+    return [(p.x, p.y) for p in (mw @ Vector((x0_, y0_, 0)), mw @ Vector((x1_, y0_, 0)), mw @ Vector((x1_, y1_, 0)), mw @ Vector((x0_, y1_, 0)))]
+def overlaps(A, B):
+    """Do two convex footprints overlap? (separating-axis test on their edges)"""
+    for poly in (A, B):
+        for k in range(len(poly)):
+            (ax_, ay_), (bx_, by_) = poly[k], poly[(k + 1) % len(poly)]
+            nx_, ny_ = by_ - ay_, ax_ - bx_
+            pa = [nx_ * x + ny_ * y for x, y in A]; pb = [nx_ * x + ny_ * y for x, y in B]
+            if max(pa) < min(pb) or max(pb) < min(pa):
+                return False
+    return True
+def square(x, y, h):
+    return [(x - h, y - h), (x + h, y - h), (x + h, y + h), (x - h, y + h)]
+
+BENCH_L = 2.1      # two visitors side by side: a seated Folio is about 1 m wide with its arms
+BENCH_SEATS = (-0.52, 0.52)   # seat centres along the bench (local X); the site reads the same values
+
 def bench_parts(b, ox=0.0, oy=0.0, oz=0.0):
-    """A park bench, front towards local -Y: two side frames (front leg, back leg rising into the backrest
-    support, seat rail, armrest), three seat slats and two backrest boards fixed to the back legs."""
-    tilt = 0.14
-    for x in (-0.82, 0.82):
+    """A three-seat park bench, front towards local -Y: side frames (front leg, back leg rising into the backrest
+    support, seat rail, armrest), a middle frame without armrest, three seat slats and two backrest boards."""
+    tilt = 0.14; half = BENCH_L / 2 - 0.08
+    for x, arm in ((-half, True), (0.0, False), (half, True)):
         b.box((ox + x, oy - 0.2, oz + 0.25), (0.08, 0.08, 0.5), "trim", bevel=False)                   # front leg
         b.box((ox + x, oy + 0.24, oz + 0.5), (0.08, 0.08, 1.0), "trim", rx=-tilt, bevel=False)          # back leg + support
         b.box((ox + x, oy + 0.01, oz + 0.44), (0.07, 0.5, 0.06), "trim", bevel=False)                   # seat rail
-        b.box((ox + x, oy - 0.03, oz + 0.68), (0.09, 0.52, 0.05), "wood", bevel=False)                  # armrest
-        b.box((ox + x, oy - 0.2, oz + 0.58), (0.06, 0.06, 0.2), "trim", bevel=False)                    # armrest post
+        if arm:
+            b.box((ox + x, oy - 0.03, oz + 0.68), (0.09, 0.52, 0.05), "wood", bevel=False)              # armrest
+            b.box((ox + x, oy - 0.2, oz + 0.58), (0.06, 0.06, 0.2), "trim", bevel=False)                # armrest post
     for y in (-0.16, 0.0, 0.16):
-        b.box((ox, oy + y, oz + 0.5), (1.72, 0.14, 0.05), "wood", bevel=False)                          # seat slats
+        b.box((ox, oy + y, oz + 0.5), (BENCH_L - 0.08, 0.14, 0.05), "wood", bevel=False)                # seat slats
     for z in (0.7, 0.9):   # backrest boards, on the front face of the leaning back legs
         y = 0.24 + (z - 0.5) * math.tan(tilt) - 0.065
-        b.box((ox, oy + y, oz + z), (1.72, 0.05, 0.15), "wood", rx=-tilt, bevel=False)
+        b.box((ox, oy + y, oz + z), (BENCH_L - 0.08, 0.05, 0.15), "wood", rx=-tilt, bevel=False)
 
 def bench(name, p, face_deg, z=None):
     b = B(); bench_parts(b)
@@ -664,9 +701,9 @@ for off in (V(-0.4, 3.6), V(-0.4, -3.6)):   # either side of the notice board
 # Lake lookout: a small deck over the shore with two benches facing the water.
 look_dir = angle_to(LOOKOUT, POND); fwd = (POND - LOOKOUT).normalized(); side = V(-fwd.y, fwd.x)
 deck_z = H(LOOKOUT.x, LOOKOUT.y) + 0.12
-LW, LD = 3.4, 2.8                     # deck width (along the shore) and depth (towards the water)
+LW, LD = 4.4, 3.2                     # deck width (along the shore) and depth (towards the water)
 b = B()
-for k in range(9):                    # planks across, front (water side) is local -Y
+for k in range(int(LD / 0.31)):       # planks across, front (water side) is local -Y
     b.box((0, -LD / 2 + 0.16 + k * 0.31, 0), (LW, 0.28, 0.08), "wood_light" if k % 2 else "wood")
 for sx in (-LW / 2 + 0.1, LW / 2 - 0.1):
     b.box((sx, 0, -0.1), (0.12, LD, 0.14), "trim", bevel=False)                 # side beams under the planks
@@ -678,10 +715,10 @@ for (x0_, y0_, x1_, y1_) in [(-LW / 2 + 0.1, -LD / 2 + 0.1, LW / 2 - 0.1, -LD / 
     b.box(((x0_ + x1_) / 2, (y0_ + y1_) / 2, 0.62), (ln + 0.1, 0.09, 0.09), "wood", rz=rz_, bevel=False)   # rail
     for t_ in (0.0, 1.0):
         b.box((x0_ + (x1_ - x0_) * t_, y0_ + (y1_ - y0_) * t_, 0.33), (0.12, 0.12, 0.6), "wood", bevel=False)
-for k, sx in enumerate((-1.3, 1.3)):  # pots in the front corners, inside the rail, clear of the way in
+for k, sx in enumerate((-LW / 2 + 0.45, LW / 2 - 0.45)):  # pots in the front corners, inside the rail
     pot(b, (sx, -LD / 2 + 0.5, 0.04), seed=k)
 b.obj("walk_lookout", loc=(LOOKOUT.x, LOOKOUT.y, deck_z), rz=math.radians(facing(look_dir)))
-bi += 1; bench(f"block_bench_{bi:02d}", LOOKOUT - fwd * 0.25, look_dir, z=deck_z + 0.04)   # centred, facing the water
+bi += 1; bench(f"block_bench_{bi:02d}", LOOKOUT - fwd * 0.55, look_dir, z=deck_z + 0.04)   # towards the back, facing the water
 
 def lamp(name, p):
     b = B()
@@ -692,6 +729,9 @@ def lamp(name, p):
 
 # Lamps in pairs along the four main paths, at the same spacing on each.
 li = 0; LAMP_POS = []
+# Lamps never stand in or against anything already placed (benches, signs, tables): those are skipped.
+bpy.context.view_layer.update()
+TAKEN = [footprint(o, 0.3) for o in coll.objects if o.type == "MESH" and o.name.startswith(FOOT_PREFIX)]
 for dense, w in DENSE[:5]:
     L = length(dense); d = 2.2
     while d < L - 1.5:
@@ -699,6 +739,8 @@ for dense, w in DENSE[:5]:
         for sgn in (-1, 1) if d < 3 else ((1,) if int(d / 5) % 2 else (-1,)):
             q = p + n * sgn * (w + 0.6)
             if q.length > PLAZA_R + 0.8:
+                if any(overlaps(square(q.x, q.y, 0.2), t) for t in TAKEN):
+                    continue
                 li += 1; LAMP_POS.append(q); lamp(f"block_lamp_{li:02d}", q)
         d += 5.0
 li += 1; lamp(f"block_lamp_{li:02d}", V(px1 - 0.1, py1 - 0.1)); bpy.data.objects[f"block_lamp_{li:02d}"].location.z = TOP + 0.04
@@ -734,12 +776,12 @@ def cafe_table(name, p):
     for a in (0.6, 2.8, 4.4):
         b.cone((0.85 * math.cos(a), 0.85 * math.sin(a), 0.22), 0.2, 0.2, 0.44, "wood", seg=8)
     at(name, b, p)
-cafe_table("block_cafe_table_01", STUDIO + V(-3.4, -4.2))
-cafe_table("block_cafe_table_02", STUDIO + V(3.4, -4.2))
+cafe_table("block_cafe_table_01", STUDIO + V(-3.7, -4.6))
+cafe_table("block_cafe_table_02", STUDIO + V(3.7, -4.6))
 b = B()
 b.box((0, -0.18, 0.5), (0.7, 0.06, 1.0), "trim", rx=-0.25, bevel=False); b.box((0, -0.22, 0.52), (0.58, 0.04, 0.8), "chalk", rx=-0.25, bevel=False)
 b.box((0, 0.18, 0.5), (0.7, 0.06, 1.0), "trim", rx=0.25, bevel=False)
-at("block_sign_01", b, STUDIO + V(1.5, -3.6), 15)
+at("block_sign_01", b, STUDIO + V(1.6, -4.0), 15)
 
 def bunting(name, p0, p1, h=3.0, sag=0.5, flags=10):
     b = B(); z0, z1 = H(p0.x, p0.y), H(p1.x, p1.y)
@@ -903,7 +945,7 @@ def make_pot(name, p, z, r=0.2):
     b.cone((0, 0, h / 2), r * 0.72, r, h, "terracotta", seg=10); b.cone((0, 0, h - 0.03), r * 1.1, r * 1.1, 0.07, "terracotta", seg=10)
     b.obj(name, loc=(p.x, p.y, z))
 
-STACK_CAFE = STUDIO + V(-4.7, -1.4)
+STACK_CAFE = STUDIO + V(-5.6, -1.4)
 STACK_COMMONS = COMMONS + V(-1.9, -3.0)
 for base, tag, rz in ((STACK_CAFE, "a", 0.15), (STACK_COMMONS, "b", -0.3)):
     z0 = H(base.x, base.y); right = V(math.cos(rz), math.sin(rz))
@@ -979,7 +1021,7 @@ for k in range(26):
         continue
     b.disc((x, y, -0.3), random.uniform(0.25, 0.45), "lily", seg=7)
     if k % 4 == 0:
-        b.disc((x + 0.08, y, -0.27), 0.1, "flower_white")
+        b.disc((x + 0.08, y, -0.295), 0.1, "flower_white")   # resting on its pad
 b.obj("deco_lilies")
 b = B(); a = 0.0
 while a < 2 * math.pi:   # shore stones in small clusters with gaps, not an even ring
@@ -1008,6 +1050,8 @@ def blocked(p, gap):
         return True
     return any((p - V(x, y)).length < r + gap * 0.25 for x, y, r in FEATURES)
 
+# Bushes block Folio and the knock-over props (added to the walk grid below).
+BUSH_OBS = []
 placed = []
 def ok(p, gap, spacing):
     return not blocked(p, gap) and all((p - q).length >= spacing for q in placed)
@@ -1044,7 +1088,7 @@ while t < 2 * math.pi:
             nt += 1; tree(f"block_tree_{nt:02d}", p, random.uniform(0.85, 1.3), pine=(nt % 6 == 0))
     t += 3.6 / R(t)
 # A pair of trees framing each building, at the same offsets.
-for c, ang, off in ((STUDIO, 270, 4.9), (GALLERY, 0, 6.2), (BOARD, 180, 3.8)):
+for c, ang, off in ((STUDIO, 270, 5.8), (GALLERY, 0, 7.0), (BOARD, 180, 4.4)):
     r = math.radians(ang + 90)
     for sgn in (-1, 1):
         p = c + V(math.cos(r), math.sin(r)) * sgn * off + V(math.cos(math.radians(ang)), math.sin(math.radians(ang))) * -1.0
@@ -1078,7 +1122,7 @@ for dense, w in (DENSE[1], DENSE[2]):
             q = p + n * sgn * (w + 0.75)
             if not blocked(q, 0.2):
                 z = H(q.x, q.y); col = ["flower_white", "flower_purple", "flower_yellow"][int(d) % 3]
-                b.ico((q.x, q.y, z + 0.18), (0.38, 0.38, 0.26), "leaf")
+                b.ico((q.x, q.y, z + 0.18), (0.38, 0.38, 0.26), "leaf"); BUSH_OBS.append((q.x, q.y, 0.38))
                 flowers_on(b, (q.x, q.y, z + 0.18), 0.38, 0.26, (col,), n=4, seed=int(d * 10) + sgn)
         d += 1.1
 for c, ang, hw in ((STUDIO, 270, 3.4), (GALLERY, 0, 4.8)):
@@ -1087,7 +1131,7 @@ for c, ang, hw in ((STUDIO, 270, 3.4), (GALLERY, 0, 4.8)):
         if abs(k) < 1:
             continue
         q = c + V(math.cos(r), math.sin(r)) * (k / 3 * hw) + back * (-0.2 if ang == 270 else 2.3)
-        z = H(q.x, q.y); b.ico((q.x, q.y, z + 0.3), (0.45, 0.4, 0.38), "leaf_dark" if k % 2 else "leaf")
+        z = H(q.x, q.y); b.ico((q.x, q.y, z + 0.3), (0.45, 0.4, 0.38), "leaf_dark" if k % 2 else "leaf"); BUSH_OBS.append((q.x, q.y, 0.45))
 b.obj("deco_beds")
 
 b = B()
@@ -1099,7 +1143,7 @@ for i in range(55):
     else:
         continue
     placed.append(p); s = random.uniform(0.4, 0.8); z = H(p.x, p.y)
-    b.ico((p.x, p.y, z + s * 0.35), (s, s, s * 0.72), random.choice(["leaf", "leaf_dark", "grass_dark"]))
+    b.ico((p.x, p.y, z + s * 0.35), (s, s, s * 0.72), random.choice(["leaf", "leaf_dark", "grass_dark"])); BUSH_OBS.append((p.x, p.y, s))
     if random.random() < 0.4:
         b.ico((p.x + s * 0.7, p.y, z + s * 0.2), (s * 0.55, s * 0.55, s * 0.45), "leaf")
 b.obj("deco_bushes")
@@ -1112,10 +1156,13 @@ for i in range(80):
     col = random.choice(cols)
     for k in range(random.randint(3, 6)):
         p = c + V(random.uniform(-0.45, 0.45), random.uniform(-0.45, 0.45)); z = H(p.x, p.y)
-        if random.random() < 0.5:
+        if random.random() < 0.5:   # a tulip: stem and cup
             b.cone((p.x, p.y, z + 0.16), 0.025, 0.025, 0.32, "grass_dark", seg=4); b.cone((p.x, p.y, z + 0.36), 0.09, 0.07, 0.16, col, seg=5)
-        else:
-            b.disc((p.x, p.y, z + 0.12), 0.1, col)
+        else:                       # a daisy: short stem, a flat head on top of it, leaves at the foot
+            b.cone((p.x, p.y, z + 0.09), 0.02, 0.02, 0.18, "grass_dark", seg=4)
+            b.cone((p.x, p.y, z + 0.19), 0.1, 0.1, 0.025, col, seg=7)
+            b.cone((p.x, p.y, z + 0.205), 0.035, 0.035, 0.02, "flower_yellow", seg=6)
+            b.ico((p.x, p.y, z + 0.03), (0.09, 0.09, 0.05), "grass_dark")
 b.obj("deco_flowers")
 
 b = B(); gd = b.mi("grass_dark")
@@ -1155,12 +1202,52 @@ if os.path.exists(ov_path):
                 continue
             o.location = tr["location"]; o.rotation_euler = tr["rotation"]; o.scale = tr["scale"]; applied += 1
 
+# ---------------------------------------------------------------- overlap audit
+# Every obstacle's real footprint is checked against every other. A lamp that overlaps anything is removed (lamps are
+# placed by spacing along the paths and can land on a bench or a sign); other overlaps are reported in ISLAND_STATS so
+# they get fixed in the layout. Expected overlaps: the pieces of one knock-over stack, the bench on the lookout deck.
+bpy.context.view_layer.update()
+def foot_objs():
+    return [o for o in coll.objects if o.type == "MESH" and o.name.startswith(FOOT_PREFIX)]
+removed = []
+for o in [o for o in foot_objs() if o.name.startswith("block_lamp")]:
+    mine = footprint(o, 0.05)
+    if any(overlaps(mine, footprint(x, 0.05)) for x in foot_objs() if x is not o):
+        removed.append(o.name); me = o.data; bpy.data.objects.remove(o, do_unlink=True); bpy.data.meshes.remove(me)
+def foot_of(o, pad):
+    """Footprint for the audit: trees by their trunk, everything else by its turned bounding box."""
+    if o.name.startswith("block_tree"):
+        return square(o.location.x, o.location.y, 0.3 + pad)
+    return footprint(o, pad)
+def crown(o):
+    xs = [c[0] * o.scale.x for c in o.bound_box]
+    return square(o.location.x, o.location.y, max(abs(v) for v in xs) * 0.85)
+for o in [o for o in foot_objs() if o.name.startswith(("block_tree", "block_rock"))]:
+    others = [x for x in foot_objs() if x is not o and not x.name.startswith(("block_tree", "block_fence"))]
+    hit = any(overlaps(foot_of(o, 0.05), foot_of(x, 0.05)) for x in others)
+    if o.name.startswith("block_tree"):   # and crowns stay out of the buildings
+        hit = hit or any(overlaps(crown(o), footprint(x)) for x in foot_objs() if x.name.startswith("lm_"))
+    if hit:
+        removed.append(o.name); me = o.data; bpy.data.objects.remove(o, do_unlink=True); bpy.data.meshes.remove(me)
+OVERLAPS = []
+objs = [o for o in foot_objs() if not o.name.startswith("block_fence")]
+feet = {o.name: foot_of(o, -0.03) for o in objs}
+for i_, a_ in enumerate(objs):
+    for b_ in objs[i_ + 1:]:
+        pair = {a_.name, b_.name}
+        if all(n.startswith("phys_") for n in pair) or ("walk_lookout" in pair and any(n.startswith("block_bench") for n in pair)):
+            continue
+        if overlaps(feet[a_.name], feet[b_.name]):
+            if not all(n.startswith("block_tree") for n in pair):   # crowns meeting is fine; trunks are tested
+                OVERLAPS.append(sorted(pair))
+
 # ---------------------------------------------------------------- walk rules: a grid the site uses for pathing
 # A cell is walkable when it is on the island (inside 92% of the rim), not water (unless it is on the dock or
 # the lookout deck), and not inside an obstacle: buildings, benches, props by their real (rotated) footprint,
 # fences by their posts and rails, trees by their trunk. Doors and the spawn are always walkable.
 # Coordinates are the site's (three.js, Y up): x = Blender x, z = -Blender y.
 NAV_RES, NAV_LIM = 0.5, 26.0
+FOLIO_R = 0.4   # Folio is about 0.8 m across: obstacles are blocked out this far, so its body never pokes into them
 bpy.context.view_layer.update()   # objects made in this run need their world matrices before the footprint tests
 decks = [bpy.data.objects[n] for n in ("walk_dock", "walk_lookout")]
 def inside_local(o, x, y, pad):
@@ -1168,20 +1255,36 @@ def inside_local(o, x, y, pad):
     bb = o.bound_box; xs = [c[0] for c in bb]; ys = [c[1] for c in bb]
     sx, sy = o.scale.x or 1, o.scale.y or 1
     return min(xs) - pad / sx <= lp.x <= max(xs) + pad / sx and min(ys) - pad / sy <= lp.y <= max(ys) + pad / sy
+def plank_under(d, x, y):
+    """Is there a deck plank right under (x, y)? Rays down onto the deck's own mesh, counting only upward faces
+    at deck height (not the rails above or the posts below). Five rays 5 cm apart, so the gaps between planks
+    don't count as water."""
+    inv = d.matrix_world.inverted(); dr = (inv.to_3x3() @ Vector((0, 0, -1))).normalized()
+    for ox, oy in ((0, 0), (0.05, 0), (-0.05, 0), (0, 0.05), (0, -0.05)):
+        hit, loc, nrm, _ = d.ray_cast(inv @ Vector((x + ox, y + oy, d.location.z + 3.0)), dr)
+        if not hit:
+            continue
+        wl = d.matrix_world @ loc; wn = (d.matrix_world.to_3x3() @ nrm).normalized()
+        if wn.z > 0.7 and d.location.z - 0.2 < wl.z < d.location.z + 0.3:
+            return True
+    return False
+def on_deck(x, y, m=0.22):
+    """On a deck with room for Folio: the cell's centre and four points m around it are all over planks."""
+    return any(all(plank_under(d, x + ox, y + oy) for ox, oy in ((0, 0), (m, 0), (-m, 0), (0, m), (0, -m))) for d in decks)
 round_obs, box_obs, vert_obs = [], [], set()
 for o in coll.objects:
     n = o.name
     if not n.startswith(("block_", "lm_")) or o.type != "MESH":
         continue
     if n.startswith("block_tree"):
-        round_obs.append((o.location.x, o.location.y, 0.75))
+        round_obs.append((o.location.x, o.location.y, 0.32 + FOLIO_R))
     elif n.startswith(("block_lamp", "block_signpost")):
-        round_obs.append((o.location.x, o.location.y, 0.4))
+        round_obs.append((o.location.x, o.location.y, 0.18 + FOLIO_R))
     elif n == "block_planter":
-        round_obs.append((o.location.x, o.location.y, 2.5))   # the stone ring, not the tree's canopy
+        round_obs.append((o.location.x, o.location.y, 2.3 + FOLIO_R))   # the stone ring, not the tree's canopy
     elif n in ("block_welcome_arch", "block_photo_frame"):    # walk through: only the two posts block
         for sx in ((-1.75, 1.75) if n == "block_welcome_arch" else (-1.25, 1.25)):
-            p = o.matrix_world @ Vector((sx, 0, 0)); round_obs.append((p.x, p.y, 0.35))
+            p = o.matrix_world @ Vector((sx, 0, 0)); round_obs.append((p.x, p.y, 0.12 + FOLIO_R))
     elif n.startswith("block_fence"):
         mw = o.matrix_world
         for v in o.data.vertices:
@@ -1189,6 +1292,7 @@ for o in coll.objects:
             vert_obs.add((int(round((p.x + NAV_LIM) / NAV_RES)), int(round((-p.y + NAV_LIM) / NAV_RES))))
     else:
         box_obs.append(o)
+round_obs += [(x, y, r * 1.1 + 0.25) for x, y, r in BUSH_OBS]   # brushing a bush is fine, walking into it isn't
 n_cells = int(2 * NAV_LIM / NAV_RES) + 1
 grid = []
 for i in range(n_cells):             # rows: site z
@@ -1198,13 +1302,14 @@ for i in range(n_cells):             # rows: site z
         ok_ = math.hypot(x, y) < 0.92 * R(math.atan2(y, x))
         if ok_:
             dx, dy = x - POND.x, y - POND.y
-            if math.hypot(dx, dy) < pond_edge(math.atan2(dy, dx)) + 0.45:
-                ok_ = any(inside_local(d, x, y, 0.0) for d in decks)
+            # Water: anywhere in the lake's basin where the ground is under the water line, unless it's deck.
+            if math.hypot(dx, dy) < pond_edge(math.atan2(dy, dx)) + 2.0 and H(x, y) < -0.2:
+                ok_ = on_deck(x, y)
         if ok_ and (j, i) in vert_obs:
             ok_ = False
         if ok_ and any(math.hypot(x - ox, y - oy) < r for ox, oy, r in round_obs):
             ok_ = False
-        if ok_ and any(inside_local(o, x, y, 0.2) for o in box_obs):
+        if ok_ and any(inside_local(o, x, y, FOLIO_R) for o in box_obs):
             ok_ = False
         row.append("1" if ok_ else "0")
     grid.append(row)
@@ -1231,6 +1336,7 @@ for i, row in enumerate(grid):
 dbg = b.obj("debug_nav"); coll.objects.unlink(dbg); prev.objects.link(dbg); dbg.hide_viewport = True; dbg.hide_render = True
 
 ISLAND_STATS = {
+    "lamps_removed": removed, "overlaps": OVERLAPS,
     "walkable_cells": sum(r.count("1") for r in nav["rows"]),
     "objects": len(coll.objects),
     "triangles": sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in coll.objects if o.type == "MESH"),
