@@ -2,7 +2,11 @@
 // art/island/build_island.py). Coordinates are the site's: x right, z towards the viewer; y is height.
 // Rules live in the grid: water, obstacles and the island's edge are not walkable (docs/studio.md).
 
-export type NavGrid = { res: number; x0: number; z0: number; size: number; rows: string[] };
+// rows: walkable cells; ride: where a bike can go (paths and the plaza), same layout.
+export type NavGrid = { res: number; x0: number; z0: number; size: number; rows: string[]; ride?: string[] };
+
+/** The bike's grid: the same grid with the ride layer as its walkable cells. */
+export const rideGrid = (g: NavGrid): NavGrid => ({ ...g, rows: g.ride ?? g.rows });
 export type Cell = { i: number; j: number }; // i: row along z, j: column along x
 export type Point = { x: number; z: number };
 

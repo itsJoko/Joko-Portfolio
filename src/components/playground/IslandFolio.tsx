@@ -7,11 +7,14 @@ import { CREASE, FACE, FOLD, FRONT, H, LIMB_ON_LIGHT, PAPER, W, folioGeometries 
 
 /**
  * Where Folio is and how it moves; written by the walker in IslandScene every frame, read here.
- * sit: 0 standing to 1 seated; cheerUntil: performance.now() time to stop a happy hop with arms up.
+ * sit: 0 standing to 1 seated; ride: 0 to 1 on a bike (seated, pedalling, hands on the handlebar);
+ * cheerUntil: performance.now() time to stop a happy hop with arms up.
  */
-export type WalkerState = { pos: THREE.Vector3; yaw: number; speed: number; sit: number; cheerUntil: number };
+export type WalkerState = { pos: THREE.Vector3; yaw: number; speed: number; sit: number; ride: number; cheerUntil: number };
 // The top of a bench seat (slats at 0.5 m, 5 cm thick): Folio sits on it, not in it.
 export const SEAT_HEIGHT = 0.53;
+// The top of a bike's saddle (build_island.py: bike()); riding, Folio sits this much higher than on a bench.
+export const RIDE_LIFT = 0.895 - SEAT_HEIGHT;
 
 // The mascot is about 3.2 units tall; on the island Folio is about 1.3 m.
 const SCALE = 0.42;
@@ -64,18 +67,22 @@ export function IslandFolio({ walker }: { walker: RefObject<WalkerState> }) {
     root.current.position.set(w.pos.x, w.pos.y + FEET + Math.abs(s) * 0.07 * pace + sit * seatLift + hop, w.pos.z);
     root.current.rotation.y = w.yaw;
     const breath = Math.sin(t * 1.6) * 0.012 * (1 - pace);
-    body.current.rotation.set(0.08 * pace - 0.06 * sit, 0, s * 0.04 * pace);
+    body.current.rotation.set(0.08 * pace - 0.06 * sit + 0.16 * w.ride, 0, s * 0.04 * pace * (1 - w.ride));
     body.current.scale.set(1 - breath * 0.5, 1 + breath, 1);
 
+    const ride = w.ride;
     const swing = 0.65 * pace * (1 - sit);
-    legL.current?.rotation.set(s * swing - 1.45 * sit, 0, 0.04);
-    legR.current?.rotation.set(-s * swing - 1.45 * sit, 0, -0.04);
+    // On a bike the legs pedal (opposite each other, with the wheels' pace) instead of resting forward.
+    const pedal = Math.sin(phase.current * 1.4) * 0.5 * Math.min(1, pace * 2) * ride;
+    legL.current?.rotation.set(s * swing - (1.45 - 0.35 * ride) * sit + pedal, 0, 0.04);
+    legR.current?.rotation.set(-s * swing - (1.45 - 0.35 * ride) * sit - pedal, 0, -0.04);
     const up = cheering ? 2.4 + Math.sin(t * 12) * 0.2 : 0;   // arms up to cheer
     // Seated, the arms tuck in to the body (hands on the seat), so a Folio fits its seat without touching the
-    // armrest or the Folio next to it.
-    const tuck = 0.3 * sit;
-    armL.current?.rotation.set(-s * swing * 0.8 - 0.55 * sit, 0, -0.18 - 0.1 * (1 - pace) - up + tuck);
-    armR.current?.rotation.set(s * swing * 0.8 - 0.55 * sit, 0, 0.18 + 0.1 * (1 - pace) + up - tuck);
+    // armrest or the Folio next to it. Riding, they reach forward to the handlebar.
+    const tuck = 0.3 * sit * (1 - ride);
+    const reach = 0.75 * ride;
+    armL.current?.rotation.set(-s * swing * 0.8 - 0.55 * sit - reach, 0, -0.18 - 0.1 * (1 - pace) - up + tuck);
+    armR.current?.rotation.set(s * swing * 0.8 - 0.55 * sit - reach, 0, 0.18 + 0.1 * (1 - pace) + up - tuck);
 
     if (eyes.current) {
       if (t > blink.current + 0.13) blink.current = t + 2.4 + (Math.sin(t * 7.3) + 1) * 1.4;

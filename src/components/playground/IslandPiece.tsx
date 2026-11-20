@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { PiPaperPlaneTilt } from "react-icons/pi";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
-import type { Mode } from "./IslandScene";
+import type { Action, Mode, Spot } from "./IslandScene";
 
 const IslandScene = dynamic(() => import("./IslandScene"), {
   ssr: false,
@@ -96,6 +96,16 @@ export function IslandPiece() {
   const [found, setFound] = useState<number | null>(null); // the plane just found, for its card
   const [fireLit, setFireLit] = useState(false);
   const [cheerUntil, setCheerUntil] = useState(0);
+  const [spot, setSpot] = useState<Spot>(null);           // standing at the bike rack or the photo spot
+  const [riding, setRiding] = useState(false);
+  const [action, setAction] = useState<Action | null>(null);
+  const [photoSaved, setPhotoSaved] = useState(false);
+  const act = (kind: Action["kind"]) => setAction((a) => ({ kind, n: (a?.n ?? 0) + 1 }));
+  useEffect(() => {
+    if (!photoSaved) return;
+    const id = window.setTimeout(() => setPhotoSaved(false), 3200);
+    return () => window.clearTimeout(id);
+  }, [photoSaved]);
   // Read what this browser remembers once mounted (storage isn't available during server render).
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from browser storage after mount
@@ -185,6 +195,10 @@ export function IslandPiece() {
                 keysActive={pointerIn}
                 labels={labels}
                 fogColor={fogColor}
+                onSpot={setSpot}
+                onRide={setRiding}
+                action={action}
+                onPhoto={() => setPhotoSaved(true)}
               />
               {/* Labels over the canvas; the scene pins each one above its landmark. */}
               {islandLandmarks.map((l) => (
@@ -234,8 +248,32 @@ export function IslandPiece() {
               </div>
             )}
 
+            {/* Things to do where Folio stands: take a bike, take a photo; riding, how to ride and park. */}
+            {mode === "walk" && (riding || spot || photoSaved) && (
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-bg p-1.5 text-sm text-ink">
+                {photoSaved ? (
+                  <p role="status" className="px-3 py-1">Photo saved to your downloads</p>
+                ) : riding ? (
+                  <>
+                    <p className="pl-3">{finePointer ? "Click a path to ride" : "Tap a path to ride"}</p>
+                    <button type="button" onClick={() => act("park")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
+                      Park the bike
+                    </button>
+                  </>
+                ) : spot === "bikes" ? (
+                  <button type="button" onClick={() => act("ride")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
+                    Ride a bike
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => act("photo")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
+                    Take a photo
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* How to move, until the first step; how to get up from a bench. */}
-            {mode === "walk" && (!walked || sitting) && (
+            {mode === "walk" && (!walked || sitting) && !riding && !spot && !photoSaved && (
               <p className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-bg px-4 py-2 text-sm text-ink">
                 {sitting
                   ? `${finePointer ? "Click" : "Tap"} anywhere to get up`
