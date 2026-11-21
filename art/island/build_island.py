@@ -16,9 +16,9 @@ points the way. North: the café (projects) with its kitchen garden. West: the g
 bike rack. East: the notice board (experience). South-west: the commons (picnic, campfire, community
 poster). South-east: a bench looking over the lake.
 """
-import bpy, bmesh, math, random, json, os
+import bpy, bmesh, math, random, json, os, re
 import numpy as np
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Euler
 from mathutils.bvhtree import BVHTree
 
 S = 1.35          # island scale (radius about 24 m)
@@ -72,7 +72,7 @@ MATS = {
     "shutter": ("#7E9C86",), "lamp_glow": ("#FFD27F", 0.5, 2.0), "flame": ("#FF9A3C", 0.5, 4.0), "paper": ("#FBF7EE",), "paper_plane": ("#FFFDF7", 0.7, 0, True),
     "chalk": ("#3D4A40",), "tomato": ("#D9442F", 0.6), "terracotta": ("#C46A3E", 0.8), "tire": ("#2E2E33", 0.7), "water": ("#7EC3E3", 0.12), "lily": ("#7FA94A",), "metal": ("#4A4A52", 0.5),
     "flower_white": ("#FFFFFF", 0.8, 0, True), "flower_purple": ("#B58BE0", 0.8, 0, True), "flower_yellow": ("#F2C443", 0.8, 0, True),
-    "hue_projects": ("#D96B3B", 0.7), "hue_graphics": ("#5E93D8", 0.45), "hue_experience": ("#B49BF0", 0.6), "hue_community": ("#CF8BEA", 0.6),
+    "hue_projects": ("#D96B3B", 0.7), "hue_graphics": ("#5E93D8", 0.45), "glass": ("#5E93D8", 0.3), "hue_experience": ("#B49BF0", 0.6), "hue_community": ("#CF8BEA", 0.6),
 }
 M = {k: mat(k, *v) for k, v in MATS.items()}
 for m in list(bpy.data.materials):
@@ -408,7 +408,10 @@ if DETAIL:
         n = int(2 * math.pi * r0 / 0.95)
         for k in range(n):
             a = 2 * math.pi * (k + 0.5 * (ri % 2)) / n
-            b.box((r0 * math.cos(a), r0 * math.sin(a), H(0, 0) + 0.085), (0.68, 2 * math.pi * r0 / n - 0.07, 0.03),
+            # Each paver on the ground mesh under it, its top 1.5 cm over the sand path (Folio and the bikes stand on
+            # the path, so they don't sink into raised tiles).
+            px_, py_ = r0 * math.cos(a), r0 * math.sin(a)
+            b.box((px_, py_, ground_z(px_, py_) + 0.05), (0.68, 2 * math.pi * r0 / n - 0.07, 0.03),
                   tones[rnd.randrange(3)], rz=a, bevel=False)
     b.obj("deco_paving")
     # A few flat stones set into the paths, off-centre, like worn stepping stones.
@@ -419,7 +422,7 @@ if DETAIL:
             p, t = lerp_along(dense, d); nrm = V(-t.y, t.x)
             q = p + nrm * rnd.uniform(-0.45, 0.45)
             if q.length > PLAZA_R + 0.4:
-                b.cone((q.x, q.y, H(q.x, q.y) + 0.065), rnd.uniform(0.2, 0.3), rnd.uniform(0.2, 0.3), 0.03, rnd.choice(["paver", "paver_light"]), seg=7)
+                b.cone((q.x, q.y, ground_z(q.x, q.y) + 0.05), rnd.uniform(0.2, 0.3), rnd.uniform(0.2, 0.3), 0.03, rnd.choice(["paver", "paver_light"]), seg=7)
             d += rnd.uniform(1.4, 2.2)
     b.obj("deco_path_stones")
 
@@ -621,20 +624,26 @@ for wall in ("left", "right"):
 for u in (-1.6, 1.6):
     wall_window(b, "back", u, 1.6, 1.0, 0.9, "lamp_glow", HW, HD)
 b.box((0, -HD - 0.5, 0.08), (1.9, 0.8, 0.16), "stone")
-at("lm_studio", b, STUDIO, facing(270))
+lm_studio = at("lm_studio", b, STUDIO, facing(270))
+# Where the café's chimney smoke starts (the site puffs smoke from here).
+bpy.context.view_layer.update()
+e = bpy.data.objects.new("fx_chimney", None); e.empty_display_type = "SPHERE"; e.empty_display_size = 0.2
+e.location = lm_studio.matrix_world @ Vector((1.9, 1.0, 5.9)); coll.objects.link(e)
 
 # ---------------------------------------------------------------- the gallery (graphics)
 b = B()
 b.box((0, 0, 1.55), (9, 4, 3.1), "plaster"); b.box((0, 0, 3.2), (9.5, 4.5, 0.3), "plaster_trim")
 b.box((0, 0, 0.12), (9.3, 4.3, 0.24), "stone_light")
+# The gallery's window panes have their own material ("glass", the same blue by day) so the site can light them
+# warm in the evening without lighting everything else that is blue.
 for x in (-3.0, -0.4):
-    wall_window(b, "front", x, 1.75, 1.85, 1.45, "hue_graphics", 4.5, 2.0)
+    wall_window(b, "front", x, 1.75, 1.85, 1.45, "glass", 4.5, 2.0)
 b.box((2.6, -2.03, 1.1), (1.3, 0.1, 2.2), "hue_graphics"); b.box((2.6, -2.5, 2.45), (2.0, 1.0, 0.1), "hue_graphics")
 b.box((2.6, -2.15, 2.25), (2.0, 0.12, 0.3), "plaster_trim")
 for u in (-1.0, 1.0):
-    wall_window(b, "left", u, 1.75, 1.2, 1.2, "hue_graphics", 4.5, 2.0); wall_window(b, "right", u, 1.75, 1.2, 1.2, "hue_graphics", 4.5, 2.0)
+    wall_window(b, "left", u, 1.75, 1.2, 1.2, "glass", 4.5, 2.0); wall_window(b, "right", u, 1.75, 1.2, 1.2, "glass", 4.5, 2.0)
 for u in (-2.6, 0.0, 2.6):
-    wall_window(b, "back", u, 1.75, 1.6, 1.2, "hue_graphics", 4.5, 2.0)
+    wall_window(b, "back", u, 1.75, 1.6, 1.2, "glass", 4.5, 2.0)
 if DETAIL:
     b.box((-2.0, 0.6, 3.5), (1.4, 1.0, 0.35), "plaster_trim"); b.box((2.5, 0.8, 3.45), (0.8, 0.8, 0.25), "metal")
     for (cx, cy, sx, sy) in [(0, -2.15, 9.5, 0.2), (0, 2.15, 9.5, 0.2), (-4.65, 0, 0.2, 4.5), (4.65, 0, 0.2, 4.5)]:
@@ -1292,6 +1301,62 @@ if os.path.exists(ov_path):
             if not o:
                 continue
             o.location = tr["location"]; o.rotation_euler = tr["rotation"]; o.scale = tr["scale"]; applied += 1
+    moved_ = set(json.load(open(ov_path, encoding="utf-8")))
+else:
+    moved_ = set()
+# Moved sideways only (height untouched): sit it on the ground at its new spot, as high above it as it was.
+resat = []
+for name in moved_:
+    o = bpy.data.objects.get(name)
+    if not o or "gen_loc" not in o or abs(o.location.z - o["gen_loc"][2]) > 1e-4:
+        continue
+    gx_, gy_, gz_ = o["gen_loc"]
+    if math.hypot(o.location.x - gx_, o.location.y - gy_) > 1e-3 and not name.startswith(("deco_bushes", "deco_flowers", "deco_grass")):
+        o.location.z = H(o.location.x, o.location.y) + (gz_ - H(gx_, gy_)); resat.append(name)
+# What belongs to a moved object goes with it (unless it was moved by hand too): a landmark's door, the bikes and
+# the bike door with the rack, the photo spot's door, camera and paving with the frame.
+FOLLOW = {"door_studio": "lm_studio", "door_gallery": "lm_gallery", "door_board": "lm_board", "door_poster": "lm_poster",
+          "door_bikes": "block_bike_rack", "ride_bike_1": "block_bike_rack", "ride_bike_2": "block_bike_rack",
+          "door_photo": "block_photo_frame", "cam_photo": "block_photo_frame", "deco_photo_spot": "block_photo_frame",
+          "fx_chimney": "lm_studio"}
+def gen_matrix(o):
+    return Matrix.LocRotScale(Vector(o["gen_loc"]), Euler(o["gen_rot"]), Vector(o["gen_scale"]))
+followed = []
+for child, parent in FOLLOW.items():
+    c, p = bpy.data.objects.get(child), bpy.data.objects.get(parent)
+    if not c or not p or child in moved_ or parent not in moved_:
+        continue
+    delta = Matrix.LocRotScale(p.location, p.rotation_euler, p.scale) @ gen_matrix(p).inverted()
+    loc, rot, sc = (delta @ gen_matrix(c)).decompose()
+    c.location = loc; c.rotation_euler = rot.to_euler(); c.scale = sc; followed.append(child)
+# Hand additions (additions.json, from capture_overrides.py): copies of generated objects, made again from the
+# object they copy under the next free name, sharing its mesh's materials.
+add_path = os.path.join(HERE, "additions.json"); added_ = []
+if os.path.exists(add_path):
+    with open(add_path, encoding="utf-8") as fh:
+        for a in json.load(fh):
+            src = bpy.data.objects.get(a["source"])
+            if not src or src.type != "MESH":
+                continue
+            stem = re.sub(r"_\d+$", "", src.name); k = 1
+            while bpy.data.objects.get(f"{stem}_{k:02d}"):
+                k += 1
+            o = src.copy(); o.data = src.data.copy(); o.name = f"{stem}_{k:02d}"; o.data.name = o.name
+            o.location = a["location"]; o.rotation_euler = a["rotation"]; o.scale = a["scale"]
+            o["added_from"] = src.name
+            o["gen_loc"], o["gen_rot"], o["gen_scale"] = list(o.location), list(o.rotation_euler), list(o.scale)
+            coll.objects.link(o); added_.append(o.name)
+bpy.context.view_layer.update()
+# A prop put down by hand a few cm over the ground rests on it (props sleep exactly where they are placed);
+# one stacked on another (well above the ground) stays where it is.
+for name in added_:
+    o = bpy.data.objects[name]
+    if not name.startswith("phys_"):
+        continue
+    bottom = min((o.matrix_world @ Vector(c)).z for c in o.bound_box); g_ = ground_z(o.location.x, o.location.y)
+    if 0 < bottom - g_ < 0.1:
+        o.location.z -= bottom - g_
+bpy.context.view_layer.update()
 
 # ---------------------------------------------------------------- overlap audit
 # Every obstacle's real footprint is checked against every other. A lamp that overlaps anything is removed (lamps are
@@ -1547,5 +1612,5 @@ ISLAND_STATS = {
     "walkable_cells": sum(r.count("1") for r in nav["rows"]),
     "objects": len(coll.objects),
     "triangles": sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in coll.objects if o.type == "MESH"),
-    "trees": nt, "lamps": li, "overrides": applied,
+    "trees": nt, "lamps": li, "overrides": applied, "resat": resat, "followed": followed, "added": added_,
 }
