@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { PiPaperPlaneTilt } from "react-icons/pi";
+import { PiBell, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun } from "react-icons/pi";
+import { IslandSound } from "@/lib/island/islandSound";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Action, Mode, Spot } from "./IslandScene";
@@ -101,6 +102,29 @@ export function IslandPiece() {
   const [action, setAction] = useState<Action | null>(null);
   const [photoSaved, setPhotoSaved] = useState(false);
   const act = (kind: Action["kind"]) => setAction((a) => ({ kind, n: (a?.n ?? 0) + 1 }));
+  // Sound: off until the visitor turns it on (made on the first press: browsers only allow sound after a click).
+  const sound = useRef<IslandSound | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+  const toggleSound = () => {
+    if (!soundOn) {
+      sound.current ??= new IslandSound();
+      void sound.current.start();
+    } else {
+      sound.current?.stop();
+    }
+    setSoundOn(!soundOn);
+  };
+  useEffect(() => () => sound.current?.dispose(), []);
+  // R rings the bike's bell (riding, pointer over the island).
+  const ring = () => sound.current?.bell();
+  useEffect(() => {
+    if (!riding || !pointerIn) return;
+    const down = (e: KeyboardEvent) => {
+      if (e.code === "KeyR" && !e.repeat && !(e.target as HTMLElement)?.closest?.("input, textarea, select, [contenteditable]")) sound.current?.bell();
+    };
+    window.addEventListener("keydown", down);
+    return () => window.removeEventListener("keydown", down);
+  }, [riding, pointerIn]);
   useEffect(() => {
     if (!photoSaved) return;
     const id = window.setTimeout(() => setPhotoSaved(false), 3200);
@@ -147,6 +171,9 @@ export function IslandPiece() {
   );
   const theme = useThemeClass();
   const fogColor = useMemo(() => (theme ? cssVar("--bg") || "#000000" : "#000000"), [theme]);
+  // The island's time of day: the site theme until the visitor picks day or evening with the island's own button.
+  const [islandNight, setIslandNight] = useState<boolean | null>(null);
+  const night = islandNight ?? theme === "dark";
   const labels = useRef(new Map<LandmarkId, HTMLElement>());
 
   const live = webgl && !reducedMotion;
@@ -199,6 +226,8 @@ export function IslandPiece() {
                 onRide={setRiding}
                 action={action}
                 onPhoto={() => setPhotoSaved(true)}
+                night={night}
+                sound={sound}
               />
               {/* Labels over the canvas; the scene pins each one above its landmark. */}
               {islandLandmarks.map((l) => (
@@ -218,14 +247,36 @@ export function IslandPiece() {
               ))}
             </div>
 
-            {/* Overview / walk switch. */}
-            <button
-              type="button"
-              onClick={() => setMode((m) => (m === "walk" ? "overview" : "walk"))}
-              className="pressable absolute right-3 top-3 rounded-full bg-bg px-4 py-2 text-sm font-medium text-ink"
-            >
-              {mode === "walk" ? "See the whole island" : "Walk around"}
-            </button>
+            {/* Sound (off until turned on), and the overview / walk switch. */}
+            <div className="absolute right-3 top-3 flex gap-2">
+              <button
+                type="button"
+                aria-pressed={night}
+                aria-label="Evening on the island"
+                title={night ? "Daytime" : "Evening"}
+                onClick={() => setIslandNight(!night)}
+                className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
+              >
+                {night ? <PiMoon aria-hidden className="size-4" /> : <PiSun aria-hidden className="size-4" />}
+              </button>
+              <button
+                type="button"
+                aria-pressed={soundOn}
+                aria-label="Sound"
+                title={soundOn ? "Sound off" : "Sound on"}
+                onClick={toggleSound}
+                className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
+              >
+                {soundOn ? <PiSpeakerHigh aria-hidden className="size-4" /> : <PiSpeakerSlash aria-hidden className="size-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode((m) => (m === "walk" ? "overview" : "walk"))}
+                className="pressable rounded-full bg-bg px-4 py-2 text-sm font-medium text-ink"
+              >
+                {mode === "walk" ? "See the whole island" : "Walk around"}
+              </button>
+            </div>
 
             {/* Paper planes found so far. */}
             {(mode === "walk" || collected.size > 0) && (
@@ -255,7 +306,12 @@ export function IslandPiece() {
                   <p role="status" className="px-3 py-1">Photo saved to your downloads</p>
                 ) : riding ? (
                   <>
-                    <p className="pl-3">{finePointer ? "Click a path to ride" : "Tap a path to ride"}</p>
+                    <p className="pl-3">{finePointer ? "Click a path to ride, R to ring" : "Tap a path to ride"}</p>
+                    {soundOn && (
+                      <button type="button" aria-label="Ring the bell" onClick={ring} className="pressable grid size-8 place-items-center rounded-full bg-surface text-ink">
+                        <PiBell aria-hidden className="size-4" />
+                      </button>
+                    )}
                     <button type="button" onClick={() => act("park")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
                       Park the bike
                     </button>

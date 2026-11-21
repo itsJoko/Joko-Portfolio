@@ -37,6 +37,8 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 export class ToyWorld {
   bodies: Body[] = [];
+  /** Knocks since the last drain (s: 0 to 1, where): ground hits, bumps between props, Folio's kicks. */
+  impacts: { s: number; x: number; z: number }[] = [];
   private quiet = 0;
 
   /** Add an object as a body; its current transform is its home. */
@@ -109,6 +111,7 @@ export class ToyWorld {
         if (!b.awake) {
           if (speed < 0.4) continue;   // standing next to a stack doesn't knock it
           this.wake(b, tmpV2.set(nx * (2.2 + speed * 0.7), 1.6 + speed * 0.3, nz * (2.2 + speed * 0.7)));
+          this.impacts.push({ s: Math.min(1, 0.4 + speed / 8), x: b.pos.x, z: b.pos.z });
         } else {
           b.pos.x = pusher.x + nx * reach;
           b.pos.z = pusher.z + nz * reach;
@@ -143,6 +146,7 @@ export class ToyWorld {
         const gy = groundY(b.pos.x, b.pos.z), down = this.reachDown(b);
         if (b.pos.y - down < gy) {
           b.pos.y = gy + down;
+          if (b.vel.y < -1) this.impacts.push({ s: Math.min(1, -b.vel.y / 6), x: b.pos.x, z: b.pos.z });
           if (b.vel.y < 0) b.vel.y = b.vel.y < -1 ? -b.vel.y * 0.25 : 0;
           const f = Math.exp(-7 * h);
           b.vel.x *= f;
@@ -174,6 +178,7 @@ export class ToyWorld {
           c.pos.addScaledVector(tmpV, overlap / 2);
           const rel = tmpV2.subVectors(c.vel, a.vel).dot(tmpV);
           if (rel < 0) {
+            if (rel < -1) this.impacts.push({ s: Math.min(1, -rel / 6), x: (a.pos.x + c.pos.x) / 2, z: (a.pos.z + c.pos.z) / 2 });
             const j_ = -rel * 0.6;
             a.vel.addScaledVector(tmpV, -j_);
             c.vel.addScaledVector(tmpV, j_);
