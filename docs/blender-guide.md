@@ -87,8 +87,12 @@ are kept like this:
    open the file there and press the ▶ button).
 3. Your changes go into `art/island/overrides.json`, and every rebuild puts them back.
 
-Kept: position, rotation, scale. Not kept: shape edits (Tab mode), new objects you add, colour changes;
-describe those to Claude and they go into the script. Objects are matched by name, so don't rename them.
+Kept: position, rotation, scale; and **copies** of island objects (select one, **Shift D**, place it; or copy and
+paste): they go into `art/island/additions.json` and each rebuild makes them again from the original, with the
+next free name (a copied crate becomes `phys_crate_07` and gets its physics). Moved sideways only, an object is
+set back on the ground at its new spot; a door, the bikes and the photo camera move with their building, rack or
+frame. Not kept: shape edits (Tab mode), brand-new objects that aren't copies, colour changes; describe those to
+Claude and they go into the script. Objects are matched by name, so don't rename them.
 
 ## 8. Change a colour (to try ideas)
 
