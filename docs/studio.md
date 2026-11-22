@@ -341,4 +341,51 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
 - [x] Joko's hand changes kept through the rebuild: 8 moves (the bike rack and bikes, the picnic table, a tree,
   a rock, a boulder) and a new knock-over stack by the notice board (`phys_crate_07–09`, `phys_barrel_04–05`).
 
-**E. Later phases** (as in Part 3): multiplayer (with Folio–Folio collisions and the second bench seat), finish.
+**E. Multiplayer (built 2026-11-21; `src/lib/island/useIslandOnline.ts`)**
+- [x] One migration (`supabase/migrations/20261121100000_island_realtime.sql`, applied): the private topic
+  `island:main` for signed-in visitors, next to Community's. No tables: movement never touches the database.
+- [x] Joining starts with the first walk: Community's anonymous sign-in behind Turnstile (one session for both
+  pages) and the visitor's generated name from `current_state()`. Alone or offline, the island works as before.
+- [x] Presence: name, where each visitor is heading, riding or not, the seat they sit on (a newcomer sees
+  everyone in place). Broadcast: `walk` (from, to, riding; one per click, every 0.4 s while steering with
+  keys), `seat`, `talk`. Every browser finds the same route on the same grid. Untrusted messages are dropped
+  (points off the island, unknown emoji or phrases, names not from the lists).
+- [x] Other visitors are Folios wearing their name's colour on the folded corner, with name tags (yours too),
+  sitting, riding a bike of their own; up to 20 drawn, "N here" counts them. Your Folio steps aside from
+  anyone standing within 0.8 m. Benches: you take the free seat; if both are taken, you stay standing.
+- [x] Talk: the Talk button opens Community's six emoji and six phrases (and Shuffle for your name); what anyone
+  says floats up over their Folio for 3 s.
+- [x] Fixes after Joko's first two-visitor test: another visitor's floor is found from a little above each frame
+  (a foot left low kept their Folio walking underground, out of sight, after a seat or a first spot); someone
+  missing from one presence update stays 4 s before they count as gone; a dropped channel joins again; getting
+  on or off a bike tells the others; a seated visitor is never shown on a bike; a walk inside the 250 ms gap is
+  sent when it ends instead of dropped.
+- [x] Seats: the half of the bench you click is the seat you take; a seat someone is on is taken (the other is
+  used if free); two visitors who sit on one seat at the same moment settle it the same way in both browsers
+  (the later key moves over, or stands). The mouse shows a hint over things to use ("Sit here", "Taken: the
+  other seat is free", "Ride a bike", "Photo spot"); a small "Sit" or "Ride" sign floats over the nearest bench
+  with a free seat or the bike rack, on every screen.
+- [x] Pills: "2 / 6 planes" (paper planes found) and a people icon with the number of visitors, you included.
+- [x] Open world: no Sit / Ride signs; a settings menu (the gear) holds Sound, Evening, Name tags (on) and Hints
+  at the mouse (off), remembered in the browser (`island-settings`; sound always starts off).
+- [x] No pushing (decided 2026-11-22): Folios walk through each other, as in most social worlds. Pushing needs
+  both screens to agree on every nudge and kept glitching. Idle Folios turn to face the camera on every screen
+  (looks only, nothing sent), not just your own.
+- [x] Hover hints ("Sit here", "Taken: the other seat is free", "Ride a bike", "Photo spot"), off by default, in
+  the settings on screens with a mouse. (They first never showed: R3F calls a pointer handler for every object
+  under the pointer, and the ground behind had the last word; the handler now stops at the nearest.)
+- [x] A soft tick on the island's buttons (settings, talk, the overview switch, ...) while its sound is on.
+- [x] No more blinks: every walk, seat and presence update carries the sender's version, and anything older than
+  what was already heard is ignored (presence goes out at most once a second and could snap a Folio back to a
+  seat or a bike for a moment). Steering with keys aims 0.8 s ahead every 0.4 s, so other screens don't stop
+  between messages, and letting go sends where Folio really stopped.
+- [x] Fewer labels: others' name tags fade in only within 7 m of you; yours shows for a few seconds after you
+  join or change name; anyone talking shows their tag and bubble at any distance. The Sit / Ride sign shows
+  within 3.5 m. On joining, your real position goes out at once (before, presence put you at the plaza's
+  centre until your first walk).
+- [x] Development: `?bots=3` fills the island with pretend visitors that wander, sit, ride and talk (no
+  Supabase); two real visitors: a normal tab and one with `?visitor=2` (a separate session). The bot check
+  doesn't finish inside Claude's embedded browser (Community's neither), so the real two-visitor test is
+  Joko's, in his own browser.
+
+**F. Later** (as in Part 3): finish.
