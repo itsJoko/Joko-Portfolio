@@ -160,7 +160,7 @@ export class IslandSound {
     // Wind breathes; water follows the lake's distance and laps.
     this.windFilter.frequency.setTargetAtTime(380 + Math.sin(t * 0.21) * 140 + Math.sin(t * 0.53) * 60, now, 0.5);
     const lake = s.lake ? near(Math.hypot(s.x - s.lake.x, s.z - s.lake.z) - s.lake.r, 0, 9) : 0;
-    this.water.gain.setTargetAtTime(lake * (0.3 + 0.14 * Math.sin(t * 1.3)), now, 0.3);
+    this.water.gain.setTargetAtTime(lake * (0.11 + 0.05 * Math.sin(t * 1.3)), now, 0.3);
     // The fire, when lit: a soft roar and crackles, louder the closer Folio is (silent past 12 m).
     const fire = s.fire?.lit ? near(Math.hypot(s.x - s.fire.x, s.z - s.fire.z), 1.5, 12) : 0;
     this.fireBed.gain.setTargetAtTime(fire * fire * 0.22, now, 0.3);
@@ -190,6 +190,20 @@ export class IslandSound {
       this.nextTick = t + 0.07;
     }
   };
+
+  /** A soft tick for the island's buttons (only while the sound is on). */
+  click() {
+    if (!this.on) return;
+    const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.frequency.setValueAtTime(1500, t);
+    o.frequency.exponentialRampToValueAtTime(900, t + 0.035);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g).connect(this.master);
+    o.start(t);
+    o.stop(t + 0.06);
+  }
 
   /** The bike bell: ding-ding. */
   bell() {

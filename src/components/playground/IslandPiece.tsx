@@ -3,9 +3,12 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { PiBell, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun } from "react-icons/pi";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { PiBell, PiChatCircleDots, PiCursorClick, PiGearSix, PiTag, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
+import { Turnstile } from "@/components/community/Turnstile";
+import { nameOf, PHRASES, phraseFor, REACTIONS, reactionFor } from "@/lib/community/words";
 import { IslandSound } from "@/lib/island/islandSound";
+import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Action, Mode, Spot } from "./IslandScene";
@@ -50,6 +53,7 @@ function Poster() {
 // Found paper planes are remembered in this browser; a lit campfire, for this visit.
 const PLANES_KEY = "island-planes";
 const FIRE_KEY = "island-fire";
+const SETTINGS_KEY = "island-settings";
 function readPlanes(): Set<number> {
   try {
     const v = JSON.parse(localStorage.getItem(PLANES_KEY) ?? "[]");
@@ -174,9 +178,68 @@ export function IslandPiece() {
   // The island's time of day: the site theme until the visitor picks day or evening with the island's own button.
   const [islandNight, setIslandNight] = useState<boolean | null>(null);
   const night = islandNight ?? theme === "dark";
+  const live = webgl && !reducedMotion;
+
+  // Other visitors: joining starts with the first walk (the bot check is usually invisible).
+  const [bubbles, setBubbles] = useState<Map<string, Talk>>(() => new Map());
+  const onTalk = (t: Talk) => {
+    setBubbles((m) => new Map(m).set(t.key, t));
+    window.setTimeout(() => setBubbles((m) => (m.get(t.key)?.uid === t.uid ? (m.delete(t.key), new Map(m)) : m)), 3200);
+  };
+  const online = useIslandOnline(live && mode === "walk", onTalk);
+  const tagEls = useRef(new Map<string, HTMLElement>());
+  const [talkOpen, setTalkOpen] = useState(false);
+  const joined = online.status === "ready" && !!online.me;
+  // Your own tag shows for a few seconds when you join and when your name changes, then gets out of the way.
+  const [flashMe, setFlashMe] = useState(false);
+  const myName = online.me ? nameOf(online.me) : "";
+  useEffect(() => {
+    if (!myName) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a timed flash when the name appears or changes
+    setFlashMe(true);
+    const id = window.setTimeout(() => setFlashMe(false), 3500);
+    return () => window.clearTimeout(id);
+  }, [myName]);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __islandOnline?: unknown }).__islandOnline = { status: online.status, me: online.me, others: online.tags.length };
+  }, [online.status, online.me, online.tags.length]);
+  const sceneOnline = useMemo(
+    () => (joined ? { others: online.others, tags: online.tags, tagEls, walk: online.walk, sit: online.sit, myKey: online.myKey } : null),
+    [joined, online.others, online.tags, online.walk, online.sit, online.myKey],
+  );
+  // Settings (the gear): name tags and mouse hints, remembered in this browser. Hints start off, so the island
+  // is there to explore; name tags start on.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [prefs, setPrefs] = useState({ names: true, hints: false });
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from browser storage after mount
+      if (saved && typeof saved === "object") setPrefs((p) => ({ names: saved.names !== false, hints: saved.hints === true || p.hints }));
+    } catch {}
+  }, []);
+  const setPref = (k: "names" | "hints", v: boolean) =>
+    setPrefs((p) => {
+      const next = { ...p, [k]: v };
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  const hintEl = useRef<HTMLSpanElement>(null);   // "Sit here", "Ride a bike" at the mouse (the scene moves it)
+  const hintsOn = useRef(false);
+  useEffect(() => {
+    hintsOn.current = prefs.hints;
+    if (!prefs.hints && hintEl.current) hintEl.current.style.opacity = "0";
+  }, [prefs.hints]);
+  const overlay = useCallback(() => ({ hint: hintsOn.current ? hintEl.current : null }), []);
+  const bubbleText = (t?: Talk) => (t ? (t.kind === "reaction" ? reactionFor(t.id)?.emoji : phraseFor(t.id)?.label) : undefined);
+  const tagRef = (k: string) => (el: HTMLElement | null) => {
+    if (el) tagEls.current.set(k, el);
+    else tagEls.current.delete(k);
+  };
   const labels = useRef(new Map<LandmarkId, HTMLElement>());
 
-  const live = webgl && !reducedMotion;
   const current = islandLandmarks.find((l) => l.id === selected);
   const nearLandmark = islandLandmarks.find((l) => l.id === near);
   const active = hovered ?? selected;
@@ -198,6 +261,8 @@ export function IslandPiece() {
       <div
         className="relative aspect-[4/3] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
         onPointerEnter={() => setPointerIn(true)}
+        // Every island button ticks softly while the island's sound is on.
+        onClickCapture={(e) => (e.target as HTMLElement).closest("button") && sound.current?.click()}
         onPointerLeave={() => setPointerIn(false)}
       >
         {live ? (
@@ -228,6 +293,8 @@ export function IslandPiece() {
                 onPhoto={() => setPhotoSaved(true)}
                 night={night}
                 sound={sound}
+                online={sceneOnline}
+                overlay={overlay}
               />
               {/* Labels over the canvas; the scene pins each one above its landmark. */}
               {islandLandmarks.map((l) => (
@@ -245,30 +312,69 @@ export function IslandPiece() {
                   {l.label}
                 </span>
               ))}
+              {/* What the mouse is over can be used: which seat you'd take (or that it's taken), the bikes. */}
+              <span
+                ref={hintEl}
+                style={{ opacity: 0 }}
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-bg transition-opacity duration-150"
+              />
+              {/* Name tags: others' fade in when they are near you; yours only right after joining or a new name.
+                  Anyone talking shows their tag with what they said floating above, near or far (data-show). */}
+              {joined &&
+                [{ key: "me", profile: online.me! }, ...online.tags.slice(0, 20)].map((t) => (
+                  <span
+                    key={t.key}
+                    ref={tagRef(t.key)}
+                    data-show={bubbles.has(t.key) || (t.key === "me" && flashMe && prefs.names) ? "1" : ""}
+                    data-names={prefs.names ? "" : "off"}
+                    style={{ opacity: 0 }}
+                    className="pointer-events-none absolute left-0 top-0 flex flex-col items-center gap-1 whitespace-nowrap transition-opacity duration-300"
+                  >
+                    {bubbles.get(t.key) && (
+                      <span key={bubbles.get(t.key)!.uid} className="island-bubble rounded-2xl bg-bg px-3 py-1 text-base text-ink shadow-sm">
+                        {bubbleText(bubbles.get(t.key))}
+                      </span>
+                    )}
+                    <span className={`items-center gap-1.5 rounded-full bg-bg/85 px-2.5 py-0.5 text-xs font-medium text-ink ${prefs.names ? "flex" : "hidden"}`}>
+                      <span aria-hidden className="tag-dot" data-colour={t.profile.colour} />
+                      {t.key === "me" ? `${nameOf(t.profile)} (you)` : nameOf(t.profile)}
+                    </span>
+                  </span>
+                ))}
             </div>
 
-            {/* Sound (off until turned on), and the overview / walk switch. */}
+            {/* Settings (sound, evening, name tags, hints), talk, and the overview / walk switch. */}
             <div className="absolute right-3 top-3 flex gap-2">
               <button
                 type="button"
-                aria-pressed={night}
-                aria-label="Evening on the island"
-                title={night ? "Daytime" : "Evening"}
-                onClick={() => setIslandNight(!night)}
+                aria-expanded={settingsOpen}
+                aria-controls="island-settings"
+                aria-label="Settings"
+                title="Settings"
+                onClick={() => {
+                  setSettingsOpen((o) => !o);
+                  setTalkOpen(false);
+                }}
                 className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
               >
-                {night ? <PiMoon aria-hidden className="size-4" /> : <PiSun aria-hidden className="size-4" />}
+                <PiGearSix aria-hidden className="size-4" />
               </button>
-              <button
-                type="button"
-                aria-pressed={soundOn}
-                aria-label="Sound"
-                title={soundOn ? "Sound off" : "Sound on"}
-                onClick={toggleSound}
-                className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
-              >
-                {soundOn ? <PiSpeakerHigh aria-hidden className="size-4" /> : <PiSpeakerSlash aria-hidden className="size-4" />}
-              </button>
+              {joined && mode === "walk" && (
+                <button
+                  type="button"
+                  aria-expanded={talkOpen}
+                  aria-controls="island-talk"
+                  aria-label="Talk"
+                  title="Talk"
+                  onClick={() => {
+                    setTalkOpen((o) => !o);
+                    setSettingsOpen(false);
+                  }}
+                  className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
+                >
+                  <PiChatCircleDots aria-hidden className="size-4" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setMode((m) => (m === "walk" ? "overview" : "walk"))}
@@ -278,15 +384,105 @@ export function IslandPiece() {
               </button>
             </div>
 
-            {/* Paper planes found so far. */}
+            {/* Settings: each a switch. */}
+            {settingsOpen && (
+              <div id="island-settings" className="absolute right-3 top-14 w-60 rounded-3xl bg-bg p-2 text-ink">
+                {(
+                  [
+                    ["sound", "Sound", soundOn, soundOn ? PiSpeakerHigh : PiSpeakerSlash],
+                    ["evening", "Evening", night, night ? PiMoon : PiSun],
+                    ["names", "Name tags", prefs.names, PiTag],
+                    ["hints", "Hover hints", prefs.hints, PiCursorClick],
+                  ] as const
+                ).filter(([id]) => id !== "hints" || finePointer).map(([id, label, on, Icon]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    onClick={() => {
+                      if (id === "sound") toggleSound();
+                      else if (id === "evening") setIslandNight(!night);
+                      else setPref(id, !prefs[id]);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm hover:bg-surface"
+                  >
+                    <Icon aria-hidden className="size-4 shrink-0" />
+                    <span className="flex-1">
+                      {label}
+                      {id === "hints" && <span className="block text-xs text-muted">&ldquo;Sit here&rdquo;, &ldquo;Ride a bike&rdquo; at the pointer</span>}
+                    </span>
+                    <span aria-hidden className={`relative h-5 w-9 rounded-full transition-colors duration-150 ${on ? "bg-accent" : "bg-surface"}`}>
+                      <span className={`absolute top-0.5 size-4 rounded-full bg-bg shadow-sm transition-transform duration-150 ${on ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Talk: the six emoji and six phrases of Community, and your name (shuffle it). */}
+            {joined && mode === "walk" && talkOpen && (
+              <div id="island-talk" className="absolute right-3 top-14 w-64 rounded-3xl bg-bg p-3 text-ink">
+                <ul className="grid grid-cols-6 gap-1" aria-label="Reactions">
+                  {REACTIONS.map((r) => (
+                    <li key={r.id}>
+                      <button type="button" aria-label={r.label} onClick={() => online.talk("reaction", r.id)} className="pressable grid size-9 place-items-center rounded-full text-lg hover:bg-surface">
+                        {r.emoji}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Phrases">
+                  {PHRASES.map((p) => (
+                    <li key={p.id}>
+                      <button type="button" onClick={() => online.talk("phrase", p.id)} className="pressable rounded-full bg-surface px-3 py-1 text-sm">
+                        {p.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 flex items-center justify-between gap-2 text-sm text-muted">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span aria-hidden className="tag-dot" data-colour={online.me!.colour} />
+                    {nameOf(online.me!)}
+                  </span>
+                  <button type="button" onClick={() => void online.shuffle()} className="link shrink-0">
+                    Shuffle
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* Paper planes found so far, and who else is here. */}
             {(mode === "walk" || collected.size > 0) && (
-              <p
-                aria-label={`Paper planes found: ${collected.size} of ${planeFacts.length}`}
-                className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-bg px-3 py-2 text-sm font-medium tabular-nums text-ink"
-              >
-                <PiPaperPlaneTilt aria-hidden className="size-4" />
-                {collected.size} / {planeFacts.length}
-              </p>
+              <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
+                <p
+                  aria-label={`Paper planes found: ${collected.size} of ${planeFacts.length}`}
+                  title="Paper planes found"
+                  className="flex items-center gap-1.5 rounded-full bg-bg px-3 py-2 text-sm font-medium tabular-nums text-ink"
+                >
+                  <PiPaperPlaneTilt aria-hidden className="size-4" />
+                  {collected.size} / {planeFacts.length}
+                  <span className="hidden sm:inline">planes</span>
+                </p>
+                {joined && mode === "walk" && online.tags.length > 0 && (
+                  <p
+                    title="Visitors on the island, you included"
+                    aria-label={`${online.tags.length + 1} visitors on the island, you included`}
+                    className="flex items-center gap-1.5 rounded-full bg-bg px-3 py-2 text-sm font-medium tabular-nums text-ink"
+                  >
+                    <PiUsers aria-hidden className="size-4" />
+                    {online.tags.length + 1}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* The bot check before joining others (usually invisible; a small box if Cloudflare wants a click). */}
+            {mode === "walk" && online.status === "needs-captcha" && (
+              <div className="absolute bottom-3 right-3">
+                <Turnstile onToken={online.signIn} onError={() => {}} />
+              </div>
             )}
 
             {/* A plane just found: what it says. */}

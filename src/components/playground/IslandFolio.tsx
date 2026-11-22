@@ -24,7 +24,8 @@ const FEET = (H + 0.68) * SCALE; // from the body's centre down to the soles
  * Folio walking on the island: the corner mascot's parts (folioGeometry.ts) with a walk cycle. Legs and arms
  * swing opposite each other with speed, the body bobs and leans a little; standing still, it breathes and blinks.
  */
-export function IslandFolio({ walker }: { walker: RefObject<WalkerState> }) {
+/** fold: the folded corner's colour (other visitors wear their name's colour there; yours stays Folio blue). */
+export function IslandFolio({ walker, fold }: { walker: RefObject<WalkerState>; fold?: string }) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
@@ -39,9 +40,9 @@ export function IslandFolio({ walker }: { walker: RefObject<WalkerState> }) {
     const matte = (color: string) => new THREE.MeshStandardMaterial({ color, roughness: 0.62 });
     return {
       g: folioGeometries(),
-      m: { paper: matte(PAPER), fold: matte(FOLD), crease: matte(CREASE), limb: matte(LIMB_ON_LIGHT), face: matte(FACE) },
+      m: { paper: matte(PAPER), fold: matte(fold ?? FOLD), crease: matte(CREASE), limb: matte(LIMB_ON_LIGHT), face: matte(FACE) },
     };
-  }, []);
+  }, [fold]);
   useEffect(
     () => () => {
       Object.values(parts.g).forEach((g) => g.dispose());

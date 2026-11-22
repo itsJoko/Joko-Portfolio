@@ -1819,6 +1819,22 @@ li:nth-child(even) > .contact-row {
   border-radius: 9999px;
   background: var(--tag, var(--muted));
 }
+
+/* Studio island: what a visitor just said floats up over their Folio, then fades (3.2 s, IslandPiece). */
+@keyframes island-bubble {
+  0% { opacity: 0; transform: translateY(6px) scale(0.96); }
+  10% { opacity: 1; transform: none; }
+  80% { opacity: 1; transform: translateY(-4px); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+@keyframes island-bubble-fade {
+  0%, 100% { opacity: 0; }
+  10%, 80% { opacity: 1; }
+}
+.island-bubble { animation: island-bubble 3.2s var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .island-bubble { animation-name: island-bubble-fade; }
+}
 .tag-dot[data-colour="fold-blue"] { --tag: #1d4ed8; }
 .tag-dot[data-colour="signal-orange"] { --tag: #ff5a1f; }
 .tag-dot[data-colour="acid-lime"] { --tag: #a3d10b; }

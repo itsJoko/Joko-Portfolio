@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { islandLandmarks, type LandmarkId } from "@/content/island";
 import { canStand, findPath, loadNav, nearestWalkable, rideGrid, toCell, toPoint, type NavGrid, type Point } from "@/lib/island/nav";
 import type { IslandSound } from "@/lib/island/islandSound";
+import type { OtherIntent, OtherTag, Seat, XZ } from "@/lib/island/useIslandOnline";
 import { ToyWorld } from "@/lib/island/toyPhysics";
 import { IslandAmbience } from "./IslandAmbience";
 import { IslandFolio, RIDE_LIFT, SEAT_HEIGHT, type WalkerState } from "./IslandFolio";
@@ -86,7 +87,46 @@ export type SceneProps = {
   night: boolean;
   /** The soundscape, when the visitor has turned it on (IslandPiece owns it); told where Folio is each frame. */
   sound: RefObject<IslandSound | null>;
+  /** Other visitors (useIslandOnline), or null when alone: their intents, name tags, and what to tell them. */
+  online: Online | null;
+  /** IslandPiece's hint at the mouse ("Sit here", "Ride a bike"); null when the visitor turned hints off. */
+  overlay: () => { hint: HTMLElement | null };
 };
+
+/** What the scene needs from useIslandOnline. tagEls: name tags drawn by IslandPiece ("me" for yours). */
+export type Online = {
+  others: RefObject<Map<string, OtherIntent>>;
+  tags: OtherTag[];
+  tagEls: RefObject<Map<string, HTMLElement>>;
+  walk: (from: XZ, to: XZ, ride: boolean) => void;
+  sit: (seat: Seat | null) => void;
+  myKey: () => string;
+};
+// Name colours (Community's tag-dot colours), worn on the folded corner of other visitors' Folios.
+const TAG_HEX: Record<string, string> = {
+  "fold-blue": "#1d4ed8", "signal-orange": "#ff5a1f", "acid-lime": "#a3d10b", "night-teal": "#0f766e",
+  rose: "#e11d48", violet: "#7c3aed", sun: "#f5b300", ink: "#2b2b2b",
+};
+const MAX_OTHERS = 20;     // drawn; more are only counted
+const tmpSeat = new THREE.Vector3();
+const TAG_NEAR = 7;        // others' name tags show within this distance of your Folio (m)
+// idle: seconds standing still (after half a second a Folio turns to face whoever's screen it is on).
+type OtherAnim = { walker: RefObject<WalkerState>; route: Point[]; n: number; placed: boolean; foot: number; bike: THREE.Object3D | null; idle: number };
+
+/** Another visitor's Folio: it registers its walker with the scene, which moves it each frame. */
+function OtherFolio({ id, colour, registry }: { id: string; colour: string; registry: RefObject<Map<string, OtherAnim>> }) {
+  const walker = useRef<WalkerState>({ pos: new THREE.Vector3(0, -50, 0), yaw: 0, speed: 0, sit: 0, ride: 0, cheerUntil: 0 });
+  useEffect(() => {
+    const map = registry.current;
+    map.set(id, { walker, route: [], n: -1, placed: false, foot: 0, bike: null, idle: 0 });
+    return () => {
+      const a = map.get(id);
+      a?.bike?.removeFromParent();
+      map.delete(id);
+    };
+  }, [id, registry]);
+  return <IslandFolio walker={walker} fold={TAG_HEX[colour]} />;
+}
 
 type Mark = { id: LandmarkId; top: THREE.Vector3; door: THREE.Vector3 };
 // Benches seat two side by side (BENCH_SEATS in build_island.py; a seated Folio is about 1 m wide): the visitor
@@ -144,10 +184,19 @@ const KEYS: Record<string, [number, number]> = {
 const SPARKS = 28;
 
 function World(props: SceneProps) {
-  const { mode, onWalkStart, selected, hovered, onSelect, onHover, goTo, onNear, onSit, collected, onCollect, fireLit, onFireLit, cheerUntil, keysActive, labels, onSpot, onRide, action, onPhoto, night, sound } = props;
+  const { mode, onWalkStart, selected, hovered, onSelect, onHover, goTo, onNear, onSit, collected, onCollect, fireLit, onFireLit, cheerUntil, keysActive, labels, onSpot, onRide, action, onPhoto, night, sound, online, overlay } = props;
+  // Other visitors' Folios, moved by this scene's frame loop (OtherFolio registers each one).
+  const registry = useRef(new Map<string, OtherAnim>());
+  const onlineRef = useRef(online);
+  useEffect(() => {
+    onlineRef.current = online;
+  });
+  const keyWalk = useRef(0);                        // when the keys last told the others where Folio is heading
+  const keySteer = useRef(false);                   // steering with keys last frame
   const { scene } = useGLTF(ISLAND_URL, false, true);
   const invalidate = useThree((s) => s.invalidate);
   const gl = useThree((s) => s.gl);
+  const getThree = useThree((s) => s.get);
 
   // ---- the island, its landmarks and things to use, the surfaces you can stand on, the spawn point
   const island = useMemo(() => {
@@ -297,7 +346,17 @@ function World(props: SceneProps) {
   const keys = useRef(new Set<string>());
   const near = useRef<LandmarkId | null>(null);
   const [nearId, setNearId] = useState<LandmarkId | null>(null);
-  const seat = useRef<{ pending: number | null; on: number | null }>({ pending: null, on: null });
+  // The bench Folio is walking to, the one it sits on, and which of its two seats (the other may be someone else's).
+  // want: the seat asked for (the half of the bench that was clicked).
+  const seat = useRef<{ pending: number | null; on: number | null; mine: number; want: number }>({ pending: null, on: null, mine: 0, want: 0 });
+  // On joining the others: say where Folio really is (until the first walk, presence would put it at 0, 0).
+  const joinedOnline = !!online;
+  useEffect(() => {
+    if (!joinedOnline) return;
+    const w = walker.current;
+    onlineRef.current?.walk([w.pos.x, w.pos.z], [w.pos.x, w.pos.z], ride.current.on !== null);
+    if (seat.current.on !== null) onlineRef.current?.sit([seat.current.on, seat.current.mine]);
+  }, [joinedOnline]);
   const marker = useRef<THREE.Mesh>(null);
   const markerLife = useRef(0);
   const fireLight = useRef<THREE.PointLight>(null);
@@ -362,8 +421,21 @@ function World(props: SceneProps) {
       reground.current = true;
       seat.current.on = null;
       onSit(false);
+      onlineRef.current?.sit(null);
     }
     seat.current.pending = null;
+  };
+
+  /** Seats of a bench other visitors sit on. */
+  const takenSeats = (bench: number) => {
+    const taken = new Set<number>();
+    onlineRef.current?.others.current?.forEach((o) => o.seat && o.seat[0] === bench && taken.add(o.seat[1]));
+    return taken;
+  };
+  /** Which seat a point on a bench (or the boat) is nearest: 0 or 1. */
+  const seatAt = (b: Bench, p: THREE.Vector3) => {
+    const v = tmpSeat.subVectors(p, b.pos);
+    return b.boat ? (v.dot(b.front) < -0.07 ? 0 : 1) : v.dot(b.right) < 0 ? 0 : 1;
   };
 
   // On a bike Folio keeps to the ride layer (paths and plaza): routes, keys and the way back all use it.
@@ -378,6 +450,8 @@ function World(props: SceneProps) {
     const path = findPath(g, { x: walker.current.pos.x, z: walker.current.pos.z }, dest);
     route.current = path;
     const end = path[path.length - 1];
+    // One message to everyone else: from here to there (their browsers find the same route).
+    if (end) onlineRef.current?.walk([walker.current.pos.x, walker.current.pos.z], [end.x, end.z], ride.current.on !== null);
     if (end && marker.current && showMarker) {
       marker.current.position.set(end.x, floorY(end.x, end.z, walker.current.pos.y + 0.3) + 0.08, end.z);
       markerLife.current = 1;
@@ -446,7 +520,23 @@ function World(props: SceneProps) {
       riding: () => ({ on: ride.current.on, pending: ride.current.pending, parking: ride.current.parking, spot: spot.current, ride: walker.current.ride }),
       walkableCells: () => nav.current?.rows.reduce((n, r) => n + r.split("1").length - 1, 0) ?? 0,
       toys: () => toys.current?.bodies.map((b) => ({ name: b.obj.name, awake: b.awake, x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), z: +b.pos.z.toFixed(2), home: +b.pos.distanceTo(b.home.pos).toFixed(2) })) ?? [],
-      state: () => ({ x: walker.current.pos.x, y: walker.current.pos.y, z: walker.current.pos.z, foot: foot.current, sit: walker.current.sit, seated: seat.current.on }),
+      state: () => ({ x: walker.current.pos.x, y: walker.current.pos.y, z: walker.current.pos.z, foot: foot.current, sit: walker.current.sit, seated: seat.current.on, seatIndex: seat.current.mine }),
+      // Where a named object is on screen (CSS px), to aim a hover at it.
+      where: (name: string, up = 0.5) => {
+        const { camera, gl: r } = getThree(), rect = r.domElement.getBoundingClientRect();
+        const o = live.current.root.getObjectByName(name);
+        if (!o) return null;
+        const p = o.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, up, 0)).project(camera);
+        return [Math.round(rect.left + ((p.x + 1) / 2) * rect.width), Math.round(rect.top + ((1 - p.y) / 2) * rect.height)];
+      },
+      // What a screen point hits first (name and the userData the pointer handlers read).
+      pick: (cx: number, cy: number) => {
+        const { camera, gl: r } = getThree(), rect = r.domElement.getBoundingClientRect();
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2(((cx - rect.left) / rect.width) * 2 - 1, -((cy - rect.top) / rect.height) * 2 + 1), camera);
+        return ray.intersectObject(live.current.root, true).slice(0, 4).map((h) => [nameOf(h.object), JSON.stringify(h.object.userData), h.object.visible, +h.distance.toFixed(1)]);
+      },
+      others: () => [...registry.current].map(([k, a]) => ({ k, placed: a.placed, n: a.n, route: a.route.length, pos: a.walker.current.pos.toArray().map((v) => +v.toFixed(2)), sit: +a.walker.current.sit.toFixed(2), ride: +a.walker.current.ride.toFixed(2) })),
       bikePos: (i = 0) => live.current.bikes[i]?.obj.position.toArray().map((v) => +v.toFixed(2)),
       // The floor rule itself: where Folio would stand at (x, z), coming from height y.
       floorAt: (x: number, z: number, y: number) => floorY(x, z, y),
@@ -557,6 +647,16 @@ function World(props: SceneProps) {
         tmp.v.copy(tmp.fwd).multiplyScalar(ky).addScaledVector(tmp.right, kx).normalize();
         dx = tmp.v.x;
         dz = tmp.v.z;
+        // Steering with keys: every 0.4 s, tell the others where Folio is heading.
+        const nowMs = performance.now();
+        if (nowMs - keyWalk.current > 400 && g) {
+          keyWalk.current = nowMs;
+          const v = rd.on !== null ? RIDE_SPEED : SPEED;
+          // 0.8 s ahead, sent every 0.4 s: the other screens never arrive and stop between two messages.
+          const ahead = { x: w.pos.x + dx * v * 0.8, z: w.pos.z + dz * v * 0.8 };
+          const to = canStand(g, ahead) ? ahead : { x: w.pos.x, z: w.pos.z };
+          onlineRef.current?.walk([w.pos.x, w.pos.z], [to.x, to.z], rd.on !== null);
+        }
       }
     } else if (route.current.length) {
       const next = route.current[0];
@@ -583,6 +683,10 @@ function World(props: SceneProps) {
       }
     }
     const moving = dx !== 0 || dz !== 0;
+    // Keys let go: where Folio really stopped (the last message aimed a little ahead).
+    const steering = keys.current.size > 0 && moving;
+    if (keySteer.current && !steering) onlineRef.current?.walk([w.pos.x, w.pos.z], [w.pos.x, w.pos.z], rd.on !== null);
+    keySteer.current = steering;
     w.speed = THREE.MathUtils.damp(w.speed, moving ? (rd.on !== null ? RIDE_SPEED : SPEED) : 0, rd.on !== null ? 4 : 10, dt);
     if (moving && g) {
       const step = w.speed * dt;
@@ -603,9 +707,14 @@ function World(props: SceneProps) {
     if (sc.pending !== null && !route.current.length && !moving) {
       const b = benches[sc.pending];
       const ap = b.boat && boatStep.current ? boatStep.current : b.approach;
-      if (Math.hypot(ap.x - w.pos.x, ap.z - w.pos.z) < 0.5) {
+      // The seat asked for if nobody is on it, else the other one; both taken, Folio just stands there.
+      const taken = takenSeats(sc.pending);
+      const free = [sc.want, 1 - sc.want].find((s) => s < b.seats.length && !taken.has(s));
+      if (Math.hypot(ap.x - w.pos.x, ap.z - w.pos.z) < 0.5 && free !== undefined) {
         sc.on = sc.pending;
+        sc.mine = free;
         onSit(true);
+        onlineRef.current?.sit([sc.on, free]);
       }
       sc.pending = null;
     }
@@ -619,13 +728,32 @@ function World(props: SceneProps) {
           bikeMove.current = { index: index!, t: 0, pos: b.obj.position.clone(), quat: b.obj.quaternion.clone(), home: rd.pending === null };
           rd.on = rd.pending !== null ? index : null;
           onRide(rd.on !== null);
+          onlineRef.current?.walk([w.pos.x, w.pos.z], [w.pos.x, w.pos.z], rd.on !== null);   // on or off the bike, for the others
         }
       }
       rd.pending = null;
       rd.parking = false;
     }
     if (sc.on !== null) {
-      const b = benches[sc.on]; const seatPos = b.seats[b.mine];
+      // Two visitors on one seat (both sat at the same moment): the one whose key sorts later moves over, or
+      // gets up if the other seat is taken too. Both browsers decide the same way.
+      const onl = onlineRef.current, mineKey = onl?.myKey() ?? "";
+      let clash = false;
+      onl?.others.current?.forEach((o, k) => {
+        if (o.seat && o.seat[0] === sc.on && o.seat[1] === sc.mine && k < mineKey) clash = true;
+      });
+      if (clash) {
+        const other = 1 - sc.mine;
+        if (other < benches[sc.on].seats.length && !takenSeats(sc.on).has(other)) {
+          sc.mine = other;
+          onl?.sit([sc.on, other]);
+        } else {
+          standUp();
+        }
+      }
+    }
+    if (sc.on !== null) {
+      const b = benches[sc.on]; const seatPos = b.seats[sc.mine];
       const kk = 1 - Math.exp(-6 * dt);
       w.pos.x += (seatPos.x - w.pos.x) * kk;
       w.pos.z += (seatPos.z - w.pos.z) * kk;
@@ -782,7 +910,7 @@ function World(props: SceneProps) {
     if (mode === "walk" && sc.on !== null) {
       const b = benches[sc.on];
       // In front of the bench, a little to one side, looking at Folio: you see its face, not its back.
-      const seatPos = b.seats[b.mine];
+      const seatPos = b.seats[sc.mine];
       desiredLook.copy(seatPos).setY(seatPos.y + 0.8);
       desiredPos.copy(seatPos).addScaledVector(b.front, 4.6).addScaledVector(b.right, 1.5).setY(seatPos.y + 2.0);
     } else if (mode === "walk") {
@@ -842,6 +970,112 @@ function World(props: SceneProps) {
       toys.current.impacts.length = 0;
     }
 
+    // ---- other visitors: each follows the route its last walk gives (the same one their own browser walks),
+    // sits where they sit, rides a bike of its own while they ride; their name tags follow them.
+    const on = onlineRef.current;
+    if (on) {
+      const intents = on.others.current;
+      registry.current.forEach((a, k) => {
+        const o = intents?.get(k);
+        if (!o) return;
+        const ow = a.walker.current;
+        const riding = o.ride && !o.seat;                 // nobody rides while sitting
+        const grid = riding ? rideNav.current : nav.current;
+        if (!a.placed || a.n !== o.n) {
+          if (!a.placed) {
+            // A newcomer to us: where they were heading if it's an old walk, else where it started.
+            const start = o.n === 0 || Date.now() - o.at > 8000 ? o.to : o.from;
+            a.foot = floorY(start[0], start[1], 3);
+            ow.pos.set(start[0], a.foot, start[1]);
+            a.placed = true;
+          }
+          a.route = grid ? findPath(grid, { x: ow.pos.x, z: ow.pos.z }, { x: o.to[0], z: o.to[1] }) : [];
+          a.n = o.n;
+        }
+        const st = o.seat ? benches[o.seat[0]]?.seats[o.seat[1]] : undefined;
+        let ox = 0, oz = 0;
+        if (st) {
+          const b = benches[o.seat![0]], kk = 1 - Math.exp(-6 * dt);
+          ow.pos.x += (st.x - ow.pos.x) * kk;
+          ow.pos.z += (st.z - ow.pos.z) * kk;
+          ow.pos.y += (st.y - ow.pos.y) * kk;
+          let turn = b.yaw - ow.yaw;
+          turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+          ow.yaw += turn * kk;
+          a.route = [];
+        } else if (a.route.length) {
+          const next = a.route[0], ex = next.x - ow.pos.x, ez = next.z - ow.pos.z, d = Math.hypot(ex, ez);
+          if (d < 0.12) a.route.shift();
+          else {
+            ox = ex / d;
+            oz = ez / d;
+          }
+        }
+        const om = ox !== 0 || oz !== 0;
+        ow.speed = THREE.MathUtils.damp(ow.speed, om ? (riding ? RIDE_SPEED : SPEED) : 0, riding ? 4 : 10, dt);
+        if (om) {
+          ow.pos.x += ox * ow.speed * dt;
+          ow.pos.z += oz * ow.speed * dt;
+          let turn = Math.atan2(ox, oz) - ow.yaw;
+          turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+          ow.yaw += turn * Math.min(1, dt * 12);
+        }
+        // Standing still, every screen turns a Folio to face its own camera, as it does yours: looks only, so
+        // nothing is sent and no two screens can disagree about it.
+        if (!om && !st && !riding && ow.speed < 0.05 && mode === "walk") {
+          a.idle += dt;
+          if (a.idle > 0.5) {
+            let turn = Math.atan2(camera.position.x - ow.pos.x, camera.position.z - ow.pos.z) - ow.yaw;
+            turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+            if (Math.abs(turn) > 0.01) {
+              ow.yaw += turn * (1 - Math.exp(-4 * dt));
+              busy = true;
+            }
+          }
+        } else {
+          a.idle = 0;
+        }
+        ow.ride += ((riding ? 1 : 0) - ow.ride) * (1 - Math.exp(-10 * dt));
+        ow.sit += ((st || riding ? 1 : 0) - ow.sit) * (1 - Math.exp(-8 * dt));
+        if (!st) {
+          // From a little above each frame: a foot left low (after a seat, the boat, a newcomer's first spot)
+          // would otherwise keep their Folio walking underground, out of sight.
+          a.foot = floorY(ow.pos.x, ow.pos.z, a.foot + REGROUND);
+          ow.pos.y = a.foot + RIDE_LIFT * ow.ride;
+        }
+        // Their own bike, a copy of the rack's, under them while they ride.
+        if (riding && !a.bike && bikes[0]) {
+          a.bike = bikes[0].obj.clone();
+          root.add(a.bike);
+        } else if (!riding && a.bike) {
+          a.bike.removeFromParent();
+          a.bike = null;
+        }
+        if (a.bike) {
+          a.bike.position.set(ow.pos.x + Math.sin(ow.yaw) * SADDLE_BACK, a.foot, ow.pos.z + Math.cos(ow.yaw) * SADDLE_BACK);
+          a.bike.rotation.set(0, ow.yaw + Math.PI, 0);
+        }
+        if (om || ow.speed > 0.02 || Math.abs(ow.sit - (st || riding ? 1 : 0)) > 0.01) busy = true;
+      });
+    }
+    // Name tags: above each Folio, yours included ("me").
+    const tagEls = on?.tagEls.current;
+    if (tagEls) {
+      // Shown when talking (data-show), or for others when they are within TAG_NEAR of you; they fade (CSS).
+      const place = (el: HTMLElement | undefined, x: number, y: number, z: number, nearby: boolean) => {
+        if (!el) return;
+        tmp.v.set(x, y + 1.75, z).project(camera);
+        const off = tmp.v.z > 1 || Math.abs(tmp.v.x) > 1.05 || Math.abs(tmp.v.y) > 1.05 || mode !== "walk";
+        el.style.transform = `translate(-50%, -100%) translate(${((tmp.v.x + 1) / 2) * size.width}px, ${((1 - tmp.v.y) / 2) * size.height}px)`;
+        el.style.opacity = !off && (el.dataset.show === "1" || (nearby && el.dataset.names !== "off")) ? "1" : "0";
+      };
+      place(tagEls.get("me"), w.pos.x, w.pos.y, w.pos.z, false);
+      registry.current.forEach((a, k) => {
+        const p = a.walker.current.pos;
+        place(tagEls.get(k), p.x, p.y, p.z, Math.hypot(p.x - w.pos.x, p.z - w.pos.z) < TAG_NEAR);
+      });
+    }
+
     // ---- the soundscape (when on) hears where Folio is
     sound?.current?.update({
       x: w.pos.x, z: w.pos.z, speed: w.speed, riding: rd.on !== null, seated: sc.on !== null, night,
@@ -887,13 +1121,34 @@ function World(props: SceneProps) {
       <primitive
         object={root}
         onPointerMove={(e: ThreeEvent<PointerEvent>) => {
+          // Only the nearest thing under the pointer (R3F calls this once per object hit, nearest first: without
+          // this, the ground behind always had the last word and the hints and pointer cursor never showed).
+          e.stopPropagation();
           const u = pickOf(e);
           onHover(u.landmark ?? null);
           document.body.style.cursor = u.landmark || u.bench !== undefined || u.fire || u.bike !== undefined || u.photo ? "pointer" : mode === "walk" ? "crosshair" : "pointer";
+          // A small hint at the mouse over things to use: which seat you'd take, or that it's taken; the bikes.
+          const el = overlay().hint;
+          if (!el) return;
+          let text = "";
+          if (mode === "walk" && e.nativeEvent.pointerType === "mouse") {
+            const riding = ride.current.on !== null;
+            if (u.bike !== undefined) text = riding ? "Park the bike" : "Ride a bike";
+            else if (u.photo && !riding) text = "Photo spot";
+            else if (u.bench !== undefined && benches[u.bench] && !riding) {
+              const b = benches[u.bench], s = seatAt(b, e.point), taken = takenSeats(u.bench);
+              text = seat.current.on === u.bench ? "Your seat" : taken.has(s) ? (taken.size >= b.seats.length ? "Both seats taken" : "Taken: the other seat is free") : b.boat ? "Sit in the boat" : "Sit here";
+            }
+          }
+          el.textContent = text;
+          el.style.opacity = text ? "1" : "0";
+          el.style.transform = `translate(${e.nativeEvent.offsetX + 14}px, ${e.nativeEvent.offsetY + 16}px)`;
         }}
         onPointerLeave={() => {
           onHover(null);
           document.body.style.cursor = "";
+          const el = overlay().hint;
+          if (el) el.style.opacity = "0";
         }}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           if (e.delta > 8) return; // a drag, not a click
@@ -924,6 +1179,7 @@ function World(props: SceneProps) {
             }
             walkTo(ap, false);
             seat.current.pending = u.bench;
+            seat.current.want = seatAt(b, e.point);          // the half of the bench that was clicked
           } else if (u.fire && fire) {
             walkTo({ x: fire.x - 1.5, z: fire.z - 1.5 }); // the far side, so the fire stays in view
           } else {
@@ -932,6 +1188,9 @@ function World(props: SceneProps) {
         }}
       />
       <IslandFolio walker={walker} />
+      {online?.tags.slice(0, MAX_OTHERS).map((t) => (
+        <OtherFolio key={t.key} id={t.key} colour={t.profile.colour} registry={registry} />
+      ))}
       <IslandAmbience root={root} night={night} lite={ISLAND_URL.includes("-lite")} />
       {marks.map((m) => {
         const on = m.id === active || m.id === nearId;
