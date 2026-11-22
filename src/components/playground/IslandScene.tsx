@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { PerformanceMonitor, useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { islandLandmarks, type LandmarkId } from "@/content/island";
@@ -1227,12 +1227,14 @@ function World(props: SceneProps) {
 
 export default function IslandScene(props: SceneProps) {
   const { onHover, fogColor } = props;
+  // Up to 2x pixel density; if the device can't keep its frame rate up, drop to 1x (and back if it recovers).
+  const [dpr, setDpr] = useState(2);
   return (
     <Canvas
       frameloop="demand"
       flat
       shadows
-      dpr={[1, 2]}
+      dpr={[1, dpr]}
       camera={{ fov: 30, near: 0.5, far: 400 }}
       gl={{ antialias: true, alpha: true }}
       onPointerLeave={() => {
@@ -1242,6 +1244,7 @@ export default function IslandScene(props: SceneProps) {
       fallback={null}
     >
       <fog attach="fog" args={[fogColor, 400, 800]} />
+      <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(2)} />
       {/* The light (a warm sky and one low sun by day, moonlight by night) lives in IslandAmbience. */}
       <World {...props} />
     </Canvas>

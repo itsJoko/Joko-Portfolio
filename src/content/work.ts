@@ -59,7 +59,7 @@ export const work: WorkItem[] = [
     id: "playground",
     title: "Playground",
     kind: "3D in the browser",
-    summary: "A 3D desk of my tools. Pick something up.",
+    summary: "A small 3D island to walk around: my work in its buildings, others walking with you.",
     href: "/playground",
     external: false,
     tone: "playground",

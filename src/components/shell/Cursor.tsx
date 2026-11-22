@@ -84,7 +84,7 @@ export function Cursor() {
       const target = hit instanceof Element ? hit : null;
       const field = target?.closest(TEXT_FIELD);
       const labelled = target?.closest<HTMLElement>("[data-cursor]");
-      // The 3D desk marks a hovered object by setting the body cursor to pointer.
+      // The Studio island marks a hovered thing to use by setting the body cursor to pointer.
       const interactive = target?.closest(INTERACTIVE) || document.body.style.cursor === "pointer";
 
       if (field) setState("text");
