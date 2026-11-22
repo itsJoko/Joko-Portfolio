@@ -39,7 +39,7 @@ Personality: composed and minimalist on the outside, playful and creative on the
 - **Graphics:** 163 pieces in 13 collections (branding, pubmats, posters, print and merch, infographics, art), each with a composed cover. Joko will supply his own redesigns of The Reef marks and the STRASUC awardee set; AI-generated mockups and work that isn't his stay out.
 - **Certificates:** Credly badges load live from `joko-comia`; TOPCIT Level 3 and AWS are added by hand.
 - **Writing:** posts mirrored from LinkedIn (SIKAPtala 2026, Batang Techno), with pictures.
-- **Playground:** interactive pieces for visitors, 3D and small games (neal.fun-like). 3D appears only here and in the Folio mascot.
+- **Playground:** interactive pieces for visitors, 3D and small games (neal.fun-like). 3D appears only here and in the Folio mascot. The main piece is the **Studio island** (`docs/studio.md`): an island to walk around with other visitors, where Joko's work sits in its buildings and every fact is a real one.
 - **Community:** "Design by committee": everyone online votes every few seconds on the next design decision for one shared poster; finished posters are archived. Talk is live emoji reactions and preset quick phrases only (no free text). Nickname plus a Cloudflare Turnstile bot check. Supabase backend (Postgres, Realtime presence, row-level security, Edge Functions). A live "N designing now" teaser on the Overview.
 - **Later:** "Walk the studio", a multiplayer 2D studio with Folio-style avatars, reusing the Community backend.
 - **First visit:** one intro moment, skippable, shown once per session. No other loading screens.

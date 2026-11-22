@@ -48,6 +48,14 @@ Spend boldness in one place: the Playground plus one signature detail in the she
 - **Optional:** GSAP, only for a scroll-driven sequence Motion can't handle well.
 - **Don't add:** AOS, AnimeJS.
 
+## Studio island (Playground)
+
+- Design and status: `docs/studio.md`; Joko's Blender guide: `docs/blender-guide.md`.
+- Blender first, export once: run `art/island/build_island.py`, then `bake_ao.py`, then `export_island.py` (writes `island.glb`, `island-lite.glb`, the walk grid `island-nav.json` and the poster). Check the build's `ISLAND_STATS` audits (all empty) before exporting.
+- Before any rebuild, run `capture_overrides.py` if Joko has touched the scene: it keeps his moves and copies (`overrides.json`, `additions.json`). The build resets everything else.
+- Multiplayer: the private Realtime topic `island:main` (migration in `supabase/migrations`); messages are untrusted, versioned, and movement never touches the database. `?bots=3` (development) fills the island with pretend visitors; `?visitor=2` is a second real session.
+- Decided, don't revisit without asking: no pushing between Folios; sound and hover hints start off; name tags fade in near you.
+
 ## Content rules
 
 - Never fabricate metrics, testimonials, clients, or awards.

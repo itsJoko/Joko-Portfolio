@@ -39,7 +39,7 @@ Direction dealt by design-taste-frontend: *The name as a monument* (seed 7436437
 
 Rules:
 - The current section's hue is `--accent`; components read `--accent`, never raw hex.
-- Hues appear on interaction (active nav icon, hover, the desk) and as whole fields in the work previews. The hero arrow's solid is the Overview hue.
+- Hues appear on interaction (active nav icon, hover, the island's place labels) and as whole fields in the work previews. The hero arrow's solid is the Overview hue.
 - Surfaces are separated by a tone step, never a line or a shadow. Only the command palette (a real modal) has a shadow.
 - No gradients, glass, or tinted near-blacks.
 
@@ -183,8 +183,8 @@ Round, filled: `surface` with ink text, or `strong` (ink fill) for the leading c
 
 ## Playground pieces
 
-### Design desk (`DeskPiece`, `DeskScene`)
-Joko's tools as monochrome clay; each object opens real work. The selected object takes Playground amber; the swatch fan opens into the four section hues. Filled round chips are the accessible control; the canvas is `aria-hidden`. Springs, draw-ins and orbit only for fine pointers without reduced motion. `frameloop="demand"`, loaded with `dynamic(..., { ssr: false })`, materials disposed on unmount.
+### Studio island (`IslandPiece`, `IslandScene`, `IslandAmbience`; full design in `docs/studio.md`)
+A small cozy low-poly island Folio walks around (click or tap, WASD): the café opens the projects, the gallery the graphics, the notice board the experience, the poster stand Community; walking up to a place opens its card, and the landmark chips under the island are the accessible control (the canvas is `aria-hidden`). Things to do: sit on benches and in the rowboat, light the campfire, find six paper planes (CV facts), knock crates over, ride a bike, take a photo in the frame. Day and night follow the site theme (or the island's own switch in its settings); trees and grass sway, the water ripples, fireflies at night. Other visitors walk with you as Folios wearing their name's colour (Community's sign-in and names; one message per walk on the Realtime channel `island:main`). Sound and hover hints are off until turned on (the gear). Made in Blender by `art/island/build_island.py` (with `bake_ao.py` and `export_island.py`); phones and weak devices load the lighter `island-lite.glb`; the scene renders on demand and drops to 1x pixels if frames fall. Reduced motion or no WebGL: the Blender poster with the chips.
 
 ## Motion
 

@@ -388,4 +388,12 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
   doesn't finish inside Claude's embedded browser (Community's neither), so the real two-visitor test is
   Joko's, in his own browser.
 
-**F. Later** (as in Part 3): finish.
+**F. Finish (2026-11-22)**
+- [x] Reduced motion or no WebGL: the Blender poster with the landmark chips (no scene, no walking).
+- [x] Weak devices: `island-lite.glb` on phones and low-memory devices; the scene renders on demand and drops
+  from 2x to 1x pixels if the frame rate falls (drei `PerformanceMonitor`), back up when it recovers.
+- [x] The design desk is gone (`DeskPiece`, `DeskScene`, its objects in `src/content/playground.ts`); the
+  Overview's Playground line describes the island.
+- [x] DESIGN.md, PRODUCT.md and CLAUDE.md describe the island and its workflow.
+- [x] Launch checks: type-check, lint, build, `npm audit` (0 vulnerabilities).
+- [ ] After the deploy: Lighthouse on the live site, and a real two-visitor test there.
