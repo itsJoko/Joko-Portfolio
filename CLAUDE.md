@@ -54,7 +54,7 @@ Spend boldness in one place: the Playground plus one signature detail in the she
 - Blender first, export once: run `art/island/build_island.py`, then `bake_ao.py`, then `export_island.py` (writes `island.glb`, `island-lite.glb`, the walk grid `island-nav.json` and the poster). Check the build's `ISLAND_STATS` audits (all empty) before exporting.
 - Before any rebuild, run `capture_overrides.py` if Joko has touched the scene: it keeps his moves and copies (`overrides.json`, `additions.json`). The build resets everything else.
 - Multiplayer: the private Realtime topic `island:main` (migration in `supabase/migrations`); messages are untrusted, versioned, and movement never touches the database. `?bots=3` (development) fills the island with pretend visitors; `?visitor=2` is a second real session.
-- Decided, don't revisit without asking: no pushing between Folios; sound and hover hints start off; name tags fade in near you.
+- Decided, don't revisit without asking: a title card with Press start (nothing 3D loads before it), then the game fills the screen with an Exit button (and Escape); sound turns on with Press start and off with Exit; no pushing between Folios; other visitors' Folios keep their own facing (only yours turns to your camera); hover hints start off; name tags fade in near you; the title card's face is Fredoka, used nowhere else.
 
 ## Content rules
 

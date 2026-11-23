@@ -369,8 +369,7 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
 - [x] Open world: no Sit / Ride signs; a settings menu (the gear) holds Sound, Evening, Name tags (on) and Hints
   at the mouse (off), remembered in the browser (`island-settings`; sound always starts off).
 - [x] No pushing (decided 2026-11-22): Folios walk through each other, as in most social worlds. Pushing needs
-  both screens to agree on every nudge and kept glitching. Idle Folios turn to face the camera on every screen
-  (looks only, nothing sent), not just your own.
+  both screens to agree on every nudge and kept glitching.
 - [x] Hover hints ("Sit here", "Taken: the other seat is free", "Ride a bike", "Photo spot"), off by default, in
   the settings on screens with a mouse. (They first never showed: R3F calls a pointer handler for every object
   under the pointer, and the ground behind had the last word; the handler now stops at the nearest.)
@@ -396,4 +395,10 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
   Overview's Playground line describes the island.
 - [x] DESIGN.md, PRODUCT.md and CLAUDE.md describe the island and its workflow.
 - [x] Launch checks: type-check, lint, build, `npm audit` (0 vulnerabilities).
+- [x] Press start (2026-11-23): the page shows the Blender poster with a title card ("Studio Island" in Fredoka,
+  the island's own face, and Press start); nothing 3D loads until it's pressed, so scrolling the page stays
+  smooth. Then the game fills the screen (the page behind doesn't scroll), sound comes on (the press is the
+  click browsers need), and Exit or Escape returns to the page and turns it off. The view switch is a map icon.
+  The landmark chips start the game too. Other visitors' Folios keep the direction they walked in (turning
+  them to each viewer's camera made them seem to reset).
 - [ ] After the deploy: Lighthouse on the live site, and a real two-visitor test there.
