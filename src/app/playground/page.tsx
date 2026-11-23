@@ -11,10 +11,10 @@ export default function PlaygroundPage() {
       <p className="mt-6 max-w-prose leading-relaxed text-muted">Small interactive things to play with.</p>
 
       <section aria-labelledby="island" className="mt-10">
-        <h2 id="island" className="text-xl font-semibold">
+        {/* The island's title card shows its name; the heading stays for screen readers and the outline. */}
+        <h2 id="island" className="sr-only">
           Studio island
         </h2>
-        <p className="mt-2 max-w-prose leading-relaxed text-muted">My work as places on a small island: the café holds the projects, the gallery the graphics.</p>
         <div className="mt-6">
           <IslandPiece />
         </div>

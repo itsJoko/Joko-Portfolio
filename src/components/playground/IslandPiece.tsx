@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Fredoka } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { PiBell, PiChatCircleDots, PiCursorClick, PiGearSix, PiTag, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
+import { PiBell, PiChatCircleDots, PiCursorClick, PiGearSix, PiMapTrifold, PiPersonSimpleWalk, PiPlay, PiTag, PiX, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
 import { Turnstile } from "@/components/community/Turnstile";
 import { nameOf, PHRASES, phraseFor, REACTIONS, reactionFor } from "@/lib/community/words";
 import { IslandSound } from "@/lib/island/islandSound";
@@ -12,6 +13,9 @@ import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Action, Mode, Spot } from "./IslandScene";
+
+// The island's own display face, for its title card only: rounded, like the low-poly island.
+const gameFont = Fredoka({ subsets: ["latin"], weight: ["600", "700"], display: "swap" });
 
 const IslandScene = dynamic(() => import("./IslandScene"), {
   ssr: false,
@@ -90,6 +94,7 @@ function LandmarkLinks({ landmark, className = "" }: { landmark: Landmark; class
  */
 export function IslandPiece() {
   const [mode, setMode] = useState<Mode>("overview");
+  const [playing, setPlaying] = useState(false);   // after Press start, until Exit
   const [selected, setSelected] = useState<LandmarkId | null>(null);
   const [hovered, setHovered] = useState<LandmarkId | null>(null);
   const [near, setNear] = useState<LandmarkId | null>(null);
@@ -186,7 +191,8 @@ export function IslandPiece() {
     setBubbles((m) => new Map(m).set(t.key, t));
     window.setTimeout(() => setBubbles((m) => (m.get(t.key)?.uid === t.uid ? (m.delete(t.key), new Map(m)) : m)), 3200);
   };
-  const online = useIslandOnline(live && mode === "walk", onTalk);
+  const game = live && playing;
+  const online = useIslandOnline(game && mode === "walk", onTalk);
   const tagEls = useRef(new Map<string, HTMLElement>());
   const [talkOpen, setTalkOpen] = useState(false);
   const joined = online.status === "ready" && !!online.me;
@@ -247,25 +253,71 @@ export function IslandPiece() {
   const startWalking = () => {
     setMode("walk");
   };
+  // Press start: the island loads only now, fills the screen, and its sound comes on (the press is the click
+  // browsers need before any sound). Exit (or Escape) goes back to the page and turns the sound off.
+  const start = () => {
+    setPlaying(true);
+    setMode("walk");
+    if (!soundOn) toggleSound();
+  };
+  const exit = () => {
+    setPlaying(false);
+    setMode("overview");
+    setSettingsOpen(false);
+    setTalkOpen(false);
+    if (soundOn) toggleSound();
+  };
   const pick = (id: LandmarkId) => {
     setSelected((s) => (s === id ? null : id));
     if (live) {
+      if (!playing) start();
       setMode("walk");
       setGoTo((g) => ({ id, n: (g?.n ?? 0) + 1 }));
       setWalked(true);
     }
   };
+  // While playing: the page behind doesn't scroll, and Escape exits (after closing an open panel).
+  useEffect(() => {
+    if (!playing) return;
+    const html = document.documentElement, before = html.style.overflow;
+    html.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = before;
+    };
+  }, [playing]);
+  const escRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    escRef.current = () => {
+      if (settingsOpen) setSettingsOpen(false);
+      else if (talkOpen) setTalkOpen(false);
+      else exit();
+    };
+  });
+  useEffect(() => {
+    if (!playing) return;
+    const down = (e: KeyboardEvent) => e.key === "Escape" && escRef.current();
+    window.addEventListener("keydown", down);
+    return () => window.removeEventListener("keydown", down);
+  }, [playing]);
 
   return (
     <div>
       <div
-        className="relative aspect-[4/3] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
+        className={
+          game
+            ? "fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
+            : "relative aspect-[4/5] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
+        }
+        data-lenis-prevent={game ? "" : undefined}
+        role={game ? "dialog" : undefined}
+        aria-modal={game ? true : undefined}
+        aria-label={game ? "Studio island" : undefined}
         onPointerEnter={() => setPointerIn(true)}
         // Every island button ticks softly while the island's sound is on.
         onClickCapture={(e) => (e.target as HTMLElement).closest("button") && sound.current?.click()}
         onPointerLeave={() => setPointerIn(false)}
       >
-        {live ? (
+        {game ? (
           <>
             {/* Decorative for assistive tech: the buttons and list below are the accessible controls. */}
             <div aria-hidden className="absolute inset-0" onPointerDown={() => mode === "walk" && setWalked(true)}>
@@ -377,10 +429,20 @@ export function IslandPiece() {
               )}
               <button
                 type="button"
+                aria-label={mode === "walk" ? "See the whole island" : "Walk around"}
+                title={mode === "walk" ? "See the whole island" : "Walk around"}
                 onClick={() => setMode((m) => (m === "walk" ? "overview" : "walk"))}
-                className="pressable rounded-full bg-bg px-4 py-2 text-sm font-medium text-ink"
+                className="pressable grid size-9 place-items-center rounded-full bg-bg text-ink"
               >
-                {mode === "walk" ? "See the whole island" : "Walk around"}
+                {mode === "walk" ? <PiMapTrifold aria-hidden className="size-4" /> : <PiPersonSimpleWalk aria-hidden className="size-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={exit}
+                className="pressable flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-sm font-medium text-bg"
+              >
+                <PiX aria-hidden className="size-4" />
+                Exit
               </button>
             </div>
 
@@ -546,7 +608,25 @@ export function IslandPiece() {
             )}
           </>
         ) : (
-          <Poster />
+          <>
+            <Poster />
+            {/* The title card. Nothing 3D loads until Press start (and the page scrolls freely meanwhile). */}
+            {live && (
+              <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-bg from-15% via-bg/60 via-45% to-transparent to-80% px-4 pb-10 text-center sm:pb-14">
+                <p aria-hidden className={`${gameFont.className} text-balance text-[clamp(2.75rem,9vw,5.5rem)] font-bold leading-[1.1] tracking-[-0.02em] text-ink`}>
+                  Studio Island
+                </p>
+                <button
+                  type="button"
+                  onClick={start}
+                  className={`${gameFont.className} pressable mt-5 flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-lg font-semibold text-bg shadow-lg`}
+                >
+                  <PiPlay aria-hidden className="size-5" />
+                  Press start
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -581,19 +661,13 @@ export function IslandPiece() {
           </ul>
         </div>
 
-        <div id="island-caption" aria-live="polite" className="min-h-28">
-          {current ? (
+        <div id="island-caption" aria-live="polite">
+          {current && (
             <>
               <p className="text-xl font-semibold">{current.title}</p>
               <p className="mt-2 max-w-prose leading-relaxed text-muted">{current.body}</p>
               <LandmarkLinks landmark={current} className="mt-3" />
             </>
-          ) : (
-            <p className="max-w-prose leading-relaxed text-muted">
-              {live
-                ? `Walk around the island and visit a place, or pick one from the list and Folio walks you there.`
-                : `Pick a place from the list to see what's there.`}
-            </p>
           )}
         </div>
       </div>

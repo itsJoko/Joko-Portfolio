@@ -110,15 +110,14 @@ const TAG_HEX: Record<string, string> = {
 const MAX_OTHERS = 20;     // drawn; more are only counted
 const tmpSeat = new THREE.Vector3();
 const TAG_NEAR = 7;        // others' name tags show within this distance of your Folio (m)
-// idle: seconds standing still (after half a second a Folio turns to face whoever's screen it is on).
-type OtherAnim = { walker: RefObject<WalkerState>; route: Point[]; n: number; placed: boolean; foot: number; bike: THREE.Object3D | null; idle: number };
+type OtherAnim = { walker: RefObject<WalkerState>; route: Point[]; n: number; placed: boolean; foot: number; bike: THREE.Object3D | null };
 
 /** Another visitor's Folio: it registers its walker with the scene, which moves it each frame. */
 function OtherFolio({ id, colour, registry }: { id: string; colour: string; registry: RefObject<Map<string, OtherAnim>> }) {
   const walker = useRef<WalkerState>({ pos: new THREE.Vector3(0, -50, 0), yaw: 0, speed: 0, sit: 0, ride: 0, cheerUntil: 0 });
   useEffect(() => {
     const map = registry.current;
-    map.set(id, { walker, route: [], n: -1, placed: false, foot: 0, bike: null, idle: 0 });
+    map.set(id, { walker, route: [], n: -1, placed: false, foot: 0, bike: null });
     return () => {
       const a = map.get(id);
       a?.bike?.removeFromParent();
@@ -1019,21 +1018,6 @@ function World(props: SceneProps) {
           let turn = Math.atan2(ox, oz) - ow.yaw;
           turn = Math.atan2(Math.sin(turn), Math.cos(turn));
           ow.yaw += turn * Math.min(1, dt * 12);
-        }
-        // Standing still, every screen turns a Folio to face its own camera, as it does yours: looks only, so
-        // nothing is sent and no two screens can disagree about it.
-        if (!om && !st && !riding && ow.speed < 0.05 && mode === "walk") {
-          a.idle += dt;
-          if (a.idle > 0.5) {
-            let turn = Math.atan2(camera.position.x - ow.pos.x, camera.position.z - ow.pos.z) - ow.yaw;
-            turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-            if (Math.abs(turn) > 0.01) {
-              ow.yaw += turn * (1 - Math.exp(-4 * dt));
-              busy = true;
-            }
-          }
-        } else {
-          a.idle = 0;
         }
         ow.ride += ((riding ? 1 : 0) - ow.ride) * (1 - Math.exp(-10 * dt));
         ow.sit += ((st || riding ? 1 : 0) - ow.sit) * (1 - Math.exp(-8 * dt));
