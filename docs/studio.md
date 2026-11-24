@@ -401,4 +401,9 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
   click browsers need), and Exit or Escape returns to the page and turns it off. The view switch is a map icon.
   The landmark chips start the game too. Other visitors' Folios keep the direction they walked in (turning
   them to each viewer's camera made them seem to reset).
+- [x] Joining (2026-11-24): Start opens the full-screen view with a quick fade and settle; a veil with the title
+  and a sliding loading bar covers it until the island's first frame, then fades (700 ms) while the camera
+  swoops from above the whole island down to Folio (slower for the first two seconds). The places row under
+  the poster shows only when the game can't run (reduced motion, no WebGL); in the game, each place's card
+  opens when Folio walks up.
 - [ ] After the deploy: Lighthouse on the live site, and a real two-visitor test there.

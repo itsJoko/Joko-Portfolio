@@ -95,6 +95,7 @@ function LandmarkLinks({ landmark, className = "" }: { landmark: Landmark; class
 export function IslandPiece() {
   const [mode, setMode] = useState<Mode>("overview");
   const [playing, setPlaying] = useState(false);   // after Press start, until Exit
+  const [ready, setReady] = useState(false);       // the island's first frame is drawn: lift the joining veil
   const [selected, setSelected] = useState<LandmarkId | null>(null);
   const [hovered, setHovered] = useState<LandmarkId | null>(null);
   const [near, setNear] = useState<LandmarkId | null>(null);
@@ -262,6 +263,7 @@ export function IslandPiece() {
   };
   const exit = () => {
     setPlaying(false);
+    setReady(false);
     setMode("overview");
     setSettingsOpen(false);
     setTalkOpen(false);
@@ -305,7 +307,7 @@ export function IslandPiece() {
       <div
         className={
           game
-            ? "fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
+            ? "island-enter fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
             : "relative aspect-[4/5] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
         }
         data-lenis-prevent={game ? "" : undefined}
@@ -319,6 +321,19 @@ export function IslandPiece() {
       >
         {game ? (
           <>
+            {/* Joining the world: the title and a loading bar over the island until its first frame, then the veil
+                fades while the camera swoops down to Folio. */}
+            <div
+              aria-hidden
+              className={`absolute inset-0 z-[60] flex flex-col items-center justify-center bg-bg transition-opacity duration-700 ease-[var(--ease-out)] ${
+                ready ? "pointer-events-none opacity-0" : "opacity-100"
+              }`}
+            >
+              <p className={`${gameFont.className} text-[clamp(2.75rem,9vw,5.5rem)] font-bold leading-[1.1] tracking-[-0.02em] text-ink`}>Studio Island</p>
+              <span className="mt-6 block h-1 w-40 overflow-hidden rounded-full bg-surface">
+                <span className="island-loading block h-full w-1/3 rounded-full bg-accent" />
+              </span>
+            </div>
             {/* Decorative for assistive tech: the buttons and list below are the accessible controls. */}
             <div aria-hidden className="absolute inset-0" onPointerDown={() => mode === "walk" && setWalked(true)}>
               <IslandScene
@@ -347,6 +362,7 @@ export function IslandPiece() {
                 sound={sound}
                 online={sceneOnline}
                 overlay={overlay}
+                onReady={() => setReady(true)}
               />
               {/* Labels over the canvas; the scene pins each one above its landmark. */}
               {islandLandmarks.map((l) => (
@@ -472,7 +488,6 @@ export function IslandPiece() {
                     <Icon aria-hidden className="size-4 shrink-0" />
                     <span className="flex-1">
                       {label}
-                      {id === "hints" && <span className="block text-xs text-muted">&ldquo;Sit here&rdquo;, &ldquo;Ride a bike&rdquo; at the pointer</span>}
                     </span>
                     <span aria-hidden className={`relative h-5 w-9 rounded-full transition-colors duration-150 ${on ? "bg-accent" : "bg-surface"}`}>
                       <span className={`absolute top-0.5 size-4 rounded-full bg-bg shadow-sm transition-transform duration-150 ${on ? "translate-x-4.5" : "translate-x-0.5"}`} />
@@ -622,7 +637,7 @@ export function IslandPiece() {
                   className={`${gameFont.className} pressable mt-5 flex items-center gap-2 rounded-full bg-ink px-7 py-3 text-lg font-semibold text-bg shadow-lg`}
                 >
                   <PiPlay aria-hidden className="size-5" />
-                  Press start
+                  Start
                 </button>
               </div>
             )}
@@ -630,6 +645,8 @@ export function IslandPiece() {
         )}
       </div>
 
+      {/* Without the game (reduced motion, no WebGL), the places and their links are listed here instead. */}
+      {!live && (
       <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-12">
         <div>
           <h3 id="island-places" className="text-sm text-muted">
@@ -671,6 +688,7 @@ export function IslandPiece() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

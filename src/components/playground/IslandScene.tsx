@@ -89,6 +89,8 @@ export type SceneProps = {
   sound: RefObject<IslandSound | null>;
   /** Other visitors (useIslandOnline), or null when alone: their intents, name tags, and what to tell them. */
   online: Online | null;
+  /** The first frame is drawn (IslandPiece lifts its joining veil). */
+  onReady: () => void;
   /** IslandPiece's hint at the mouse ("Sit here", "Ride a bike"); null when the visitor turned hints off. */
   overlay: () => { hint: HTMLElement | null };
 };
@@ -183,7 +185,7 @@ const KEYS: Record<string, [number, number]> = {
 const SPARKS = 28;
 
 function World(props: SceneProps) {
-  const { mode, onWalkStart, selected, hovered, onSelect, onHover, goTo, onNear, onSit, collected, onCollect, fireLit, onFireLit, cheerUntil, keysActive, labels, onSpot, onRide, action, onPhoto, night, sound, online, overlay } = props;
+  const { mode, onWalkStart, selected, hovered, onSelect, onHover, goTo, onNear, onSit, collected, onCollect, fireLit, onFireLit, cheerUntil, keysActive, labels, onSpot, onRide, action, onPhoto, night, sound, online, overlay, onReady } = props;
   // Other visitors' Folios, moved by this scene's frame loop (OtherFolio registers each one).
   const registry = useRef(new Map<string, OtherAnim>());
   const onlineRef = useRef(online);
@@ -375,7 +377,7 @@ function World(props: SceneProps) {
   const scratch = useRef({
     ray: new THREE.Raycaster(), probe: new THREE.Vector3(), fwd: new THREE.Vector3(), right: new THREE.Vector3(),
     v: new THREE.Vector3(), desiredPos: new THREE.Vector3(), desiredLook: new THREE.Vector3(),
-    lookAt: OVERVIEW_TARGET.clone(), placed: false, fire: 0, idle: 0,
+    lookAt: OVERVIEW_TARGET.clone(), placed: false, fire: 0, idle: 0, intro: 0,
     prevYaw: Math.PI, euler: new THREE.Euler(), bikePos: new THREE.Vector3(), bikeQuat: new THREE.Quaternion(),
     photoCam: new THREE.PerspectiveCamera(PHOTO_FOV, 1, 0.1, 200),
   });
@@ -919,12 +921,17 @@ function World(props: SceneProps) {
       desiredLook.copy(OVERVIEW_TARGET);
       desiredPos.copy(OVERVIEW_TARGET).addScaledVector(VIEW, overviewDist);
     }
+    // Joining the world: the first frame is the whole island from above, then the camera swoops down to Folio
+    // (a little slower than usual for the first two seconds) while IslandPiece's veil fades.
     if (!tmp.placed) {
-      camera.position.copy(desiredPos);
-      lookAt.copy(desiredLook);
+      camera.position.copy(OVERVIEW_TARGET).addScaledVector(VIEW, overviewDist * 0.85);
+      lookAt.copy(OVERVIEW_TARGET);
       tmp.placed = true;
+      tmp.intro = 0;
+      onReady();
     }
-    const k = 1 - Math.exp(-3.2 * dt);
+    tmp.intro += dt;
+    const k = 1 - Math.exp(-(tmp.intro < 2.2 ? 1.7 : 3.2) * dt);
     camera.position.lerp(desiredPos, k);
     lookAt.lerp(desiredLook, k);
     camera.lookAt(lookAt);
