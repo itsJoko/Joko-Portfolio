@@ -5,6 +5,8 @@ import { Fredoka } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { PiBell, PiChatCircleDots, PiCursorClick, PiGearSix, PiMapTrifold, PiPersonSimpleWalk, PiPlay, PiTag, PiX, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
 import { Turnstile } from "@/components/community/Turnstile";
 import { nameOf, PHRASES, phraseFor, REACTIONS, reactionFor } from "@/lib/community/words";
@@ -13,6 +15,8 @@ import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Action, Mode, Spot } from "./IslandScene";
+
+gsap.registerPlugin(useGSAP);
 
 // The island's own display face, for its title card only: rounded, like the low-poly island.
 const gameFont = Fredoka({ subsets: ["latin"], weight: ["600", "700"], display: "swap" });
@@ -93,8 +97,12 @@ function LandmarkLinks({ landmark, className = "" }: { landmark: Landmark; class
  * walking up to a place opens its card. The list under the island is the accessible control.
  */
 export function IslandPiece() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const transitionRef = useRef<HTMLDivElement>(null);
+  const transitionTextRef = useRef<HTMLParagraphElement>(null);
   const [mode, setMode] = useState<Mode>("overview");
   const [playing, setPlaying] = useState(false);   // after Press start, until Exit
+  const [transitionPhase, setTransitionPhase] = useState<"enter" | "exit" | null>(null);
   const [ready, setReady] = useState(false);       // the island's first frame is drawn: lift the joining veil
   const [selected, setSelected] = useState<LandmarkId | null>(null);
   const [hovered, setHovered] = useState<LandmarkId | null>(null);
@@ -185,6 +193,57 @@ export function IslandPiece() {
   const [islandNight, setIslandNight] = useState<boolean | null>(null);
   const night = islandNight ?? theme === "dark";
   const live = webgl && !reducedMotion;
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [talkOpen, setTalkOpen] = useState(false);
+
+  useGSAP(
+    () => {
+      if (!transitionPhase || !transitionRef.current) return;
+
+      const overlay = transitionRef.current;
+      const text = transitionTextRef.current;
+      const instant = reducedMotion;
+      const duration = instant ? 0.12 : 0.58;
+      const hold = instant ? 0.05 : 0.24;
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.inOut" },
+        onComplete: () => setTransitionPhase(null),
+      });
+
+      gsap.set(overlay, { yPercent: 100, autoAlpha: 1 });
+      if (text) gsap.set(text, { autoAlpha: 0, y: instant ? 0 : 18 });
+
+      if (transitionPhase === "enter") {
+        tl.to(overlay, { yPercent: 0, duration, ease: "power4.inOut" })
+          .call(() => {
+            setReady(false);
+            setPlaying(true);
+            setMode("walk");
+            sound.current ??= new IslandSound();
+            void sound.current.start();
+            setSoundOn(true);
+          })
+          .to(text, { autoAlpha: 1, y: 0, duration: instant ? 0.08 : 0.22, ease: "power2.out" }, "<")
+          .to(text, { autoAlpha: 0, y: instant ? 0 : -12, duration: instant ? 0.08 : 0.18, ease: "power2.in" }, `+=${hold}`)
+          .to(overlay, { yPercent: -100, duration, ease: "power4.inOut" }, "-=0.06");
+      } else {
+        tl.to(overlay, { yPercent: 0, duration, ease: "power4.inOut" })
+          .call(() => {
+            setPlaying(false);
+            setReady(false);
+            setMode("overview");
+            setSettingsOpen(false);
+            setTalkOpen(false);
+            sound.current?.stop();
+            setSoundOn(false);
+          })
+          .to(text, { autoAlpha: 1, y: 0, duration: instant ? 0.08 : 0.22, ease: "power2.out" }, "<")
+          .to(text, { autoAlpha: 0, y: instant ? 0 : -12, duration: instant ? 0.08 : 0.18, ease: "power2.in" }, `+=${hold}`)
+          .to(overlay, { yPercent: -100, duration, ease: "power4.inOut" }, "-=0.06");
+      }
+    },
+    { dependencies: [transitionPhase, reducedMotion], scope: rootRef },
+  );
 
   // Other visitors: joining starts with the first walk (the bot check is usually invisible).
   const [bubbles, setBubbles] = useState<Map<string, Talk>>(() => new Map());
@@ -195,7 +254,6 @@ export function IslandPiece() {
   const game = live && playing;
   const online = useIslandOnline(game && mode === "walk", onTalk);
   const tagEls = useRef(new Map<string, HTMLElement>());
-  const [talkOpen, setTalkOpen] = useState(false);
   const joined = online.status === "ready" && !!online.me;
   // Your own tag shows for a few seconds when you join and when your name changes, then gets out of the way.
   const [flashMe, setFlashMe] = useState(false);
@@ -216,7 +274,6 @@ export function IslandPiece() {
   );
   // Settings (the gear): name tags and mouse hints, remembered in this browser. Hints start off, so the island
   // is there to explore; name tags start on.
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [prefs, setPrefs] = useState({ names: true, hints: false });
   useEffect(() => {
     try {
@@ -257,17 +314,12 @@ export function IslandPiece() {
   // Press start: the island loads only now, fills the screen, and its sound comes on (the press is the click
   // browsers need before any sound). Exit (or Escape) goes back to the page and turns the sound off.
   const start = () => {
-    setPlaying(true);
-    setMode("walk");
-    if (!soundOn) toggleSound();
+    if (transitionPhase) return;
+    setTransitionPhase("enter");
   };
   const exit = () => {
-    setPlaying(false);
-    setReady(false);
-    setMode("overview");
-    setSettingsOpen(false);
-    setTalkOpen(false);
-    if (soundOn) toggleSound();
+    if (transitionPhase) return;
+    setTransitionPhase("exit");
   };
   const pick = (id: LandmarkId) => {
     setSelected((s) => (s === id ? null : id));
@@ -303,11 +355,11 @@ export function IslandPiece() {
   }, [playing]);
 
   return (
-    <div>
+    <div ref={rootRef}>
       <div
         className={
           game
-            ? "island-enter fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
+            ? "fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
             : "relative aspect-[4/5] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
         }
         data-lenis-prevent={game ? "" : undefined}
@@ -319,6 +371,21 @@ export function IslandPiece() {
         onClickCapture={(e) => (e.target as HTMLElement).closest("button") && sound.current?.click()}
         onPointerLeave={() => setPointerIn(false)}
       >
+        {transitionPhase && (
+          <div
+            ref={transitionRef}
+            aria-hidden
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink text-bg"
+          >
+            <p
+              ref={transitionTextRef}
+              className={`${gameFont.className} text-balance px-6 text-center text-[clamp(2.5rem,8vw,5.5rem)] font-bold leading-[1] tracking-[-0.03em]`}
+            >
+              {transitionPhase === "enter" ? "Studio Island" : "Back to Playground"}
+            </p>
+            <span className="absolute inset-x-0 bottom-0 h-1 bg-accent" />
+          </div>
+        )}
         {game ? (
           <>
             {/* Joining the world: the title and a loading bar over the island until its first frame, then the veil
