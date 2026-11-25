@@ -4,13 +4,15 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { CREASE, FACE, FOLD, FRONT, H, LIMB_ON_LIGHT, PAPER, W, folioGeometries } from "@/components/shell/folioGeometry";
+import type { Pose } from "@/lib/island/poses";
 
 /**
  * Where Folio is and how it moves; written by the walker in IslandScene every frame, read here.
  * sit: 0 standing to 1 seated; ride: 0 to 1 on a bike (seated, pedalling, hands on the handlebar);
- * cheerUntil: performance.now() time to stop a happy hop with arms up.
+ * cheerUntil: performance.now() time to stop a happy hop with arms up; pose: which pose until then (the photo
+ * spot's choice), a cheer when unset.
  */
-export type WalkerState = { pos: THREE.Vector3; yaw: number; speed: number; sit: number; ride: number; cheerUntil: number };
+export type WalkerState = { pos: THREE.Vector3; yaw: number; speed: number; sit: number; ride: number; cheerUntil: number; pose?: Pose };
 // The top of a bench seat (slats at 0.5 m, 5 cm thick): Folio sits on it, not in it.
 export const SEAT_HEIGHT = 0.53;
 // The top of a bike's saddle (build_island.py: bike()); riding, Folio sits this much higher than on a bench.
@@ -61,7 +63,10 @@ export function IslandFolio({ walker, fold }: { walker: RefObject<WalkerState>; 
     const s = Math.sin(phase.current);
     const sit = w.sit;
     const cheering = performance.now() < w.cheerUntil;
-    const hop = cheering ? Math.abs(Math.sin(t * 9)) * 0.28 : 0;
+    const pose = cheering ? (w.pose ?? "cheer") : null;
+    // Cheer: hops, both arms up. Wave: one arm up, waving. Star jump: a big hop, arms and legs out.
+    // Point: one arm straight at the camera, the other on the hip.
+    const hop = pose === "cheer" ? Math.abs(Math.sin(t * 9)) * 0.28 : pose === "star" ? Math.abs(Math.sin(t * 7)) * 0.4 : 0;
 
     // Seated, the hips rest on the seat: the body sits higher than standing, because the legs fold forward.
     const seatLift = SEAT_HEIGHT + H * SCALE - FEET;
@@ -75,15 +80,19 @@ export function IslandFolio({ walker, fold }: { walker: RefObject<WalkerState>; 
     const swing = 0.65 * pace * (1 - sit);
     // On a bike the legs pedal (opposite each other, with the wheels' pace) instead of resting forward.
     const pedal = Math.sin(phase.current * 1.4) * 0.5 * Math.min(1, pace * 2) * ride;
-    legL.current?.rotation.set(s * swing - (1.45 - 0.35 * ride) * sit + pedal, 0, 0.04);
-    legR.current?.rotation.set(-s * swing - (1.45 - 0.35 * ride) * sit - pedal, 0, -0.04);
-    const up = cheering ? 2.4 + Math.sin(t * 12) * 0.2 : 0;   // arms up to cheer
+    const spread = pose === "star" ? 0.38 : 0;               // legs apart for a star jump
+    legL.current?.rotation.set(s * swing - (1.45 - 0.35 * ride) * sit + pedal, 0, 0.04 + spread);
+    legR.current?.rotation.set(-s * swing - (1.45 - 0.35 * ride) * sit - pedal, 0, -0.04 - spread);
+    // How far each arm is raised out to the side, and how far it reaches forward, per pose.
+    const upL = pose === "cheer" ? 2.4 + Math.sin(t * 12) * 0.2 : pose === "star" ? 1.9 : pose === "point" ? 0.45 : 0;
+    const upR = pose === "cheer" ? 2.4 + Math.sin(t * 12) * 0.2 : pose === "star" ? 1.9 : pose === "wave" ? 2.5 + Math.sin(t * 11) * 0.35 : 0;
+    const pointAt = pose === "point" ? 1.5 : 0;
     // Seated, the arms tuck in to the body (hands on the seat), so a Folio fits its seat without touching the
     // armrest or the Folio next to it. Riding, they reach forward to the handlebar.
     const tuck = 0.3 * sit * (1 - ride);
     const reach = 0.75 * ride;
-    armL.current?.rotation.set(-s * swing * 0.8 - 0.55 * sit - reach, 0, -0.18 - 0.1 * (1 - pace) - up + tuck);
-    armR.current?.rotation.set(s * swing * 0.8 - 0.55 * sit - reach, 0, 0.18 + 0.1 * (1 - pace) + up - tuck);
+    armL.current?.rotation.set(-s * swing * 0.8 - 0.55 * sit - reach, 0, -0.18 - 0.1 * (1 - pace) - upL + tuck);
+    armR.current?.rotation.set(s * swing * 0.8 - 0.55 * sit - reach - pointAt, 0, 0.18 + 0.1 * (1 - pace) + upR - tuck);
 
     if (eyes.current) {
       if (t > blink.current + 0.13) blink.current = t + 2.4 + (Math.sin(t * 7.3) + 1) * 1.4;

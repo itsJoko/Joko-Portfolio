@@ -7,7 +7,8 @@
 //   so a newcomer sees everyone where they are;
 // - broadcast "walk": one message per click (from, to, riding); every browser works out the same route from the
 //   same walk grid and animates it, so nobody streams positions;
-// - broadcast "seat" and "talk": sitting down or getting up, and the six emoji and six phrases of Community.
+// - broadcast "seat" and "talk": sitting down or getting up, and the six emoji and six phrases of Community;
+// - broadcast "pose": a pose struck at the photo spot (one of the known poses), so group photos show everyone's.
 // Every message is untrusted: a walk is kept only if its points are numbers on the island, talk only if it is a
 // known emoji or phrase, a name only if it is a generated one. Anything else is dropped.
 
@@ -15,13 +16,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
 import { isProfile, phraseFor, reactionFor, shuffleProfile, type Profile } from "@/lib/community/words";
+import { isPose, type Pose } from "@/lib/island/poses";
 
 export type OnlineStatus = "offline" | "checking" | "needs-captcha" | "joining" | "ready" | "error";
 export type XZ = [number, number];
 export type Seat = [number, number];  // bench index, seat index
 /** What another visitor is doing, as last heard; `n` changes whenever they start a new walk. */
 /** v: the sender's own count of changes; a message older than the last one heard is ignored (no snapping back). */
-export type OtherIntent = { profile: Profile; from: XZ; to: XZ; ride: boolean; seat: Seat | null; n: number; at: number; v: number; missing?: number };
+/** pose: the last pose they struck at the photo spot; `n` changes with each one. */
+export type OtherIntent = { profile: Profile; from: XZ; to: XZ; ride: boolean; seat: Seat | null; n: number; at: number; v: number; missing?: number; pose?: { id: Pose; n: number } };
 export type Talk = { key: string; kind: "reaction" | "phrase"; id: string; uid: number };
 export type OtherTag = { key: string; profile: Profile };
 
@@ -29,6 +32,7 @@ const TOPIC = "island:main";
 const LIMIT = 26;              // the walk grid's half size (m)
 const WALK_GAP_MS = 250;       // at most four walks a second from one visitor
 const TALK_GAP_MS = 900;
+const POSE_GAP_MS = 1000;      // a pose lasts about a second: no more often than that
 const TRACK_GAP_MS = 1000;     // presence updates at most once a second
 const GONE_MS = 4000;          // missing from presence this long: they left
 const RETRY_MS = 2500;         // the channel dropped: join again after this
@@ -53,7 +57,7 @@ export function useIslandOnline(enabled: boolean, onTalk: (t: Talk) => void) {
   const key = useRef("");
   const meRef = useRef<Profile | null>(null);
   const mine = useRef<{ at: XZ; ride: boolean; seat: Seat | null; v: number }>({ at: [0, 0], ride: false, seat: null, v: 0 });
-  const last = useRef({ walk: 0, talk: 0, track: 0 });
+  const last = useRef({ walk: 0, talk: 0, track: 0, pose: 0 });
   const trackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const walkTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const talkRef = useRef(onTalk);
@@ -179,6 +183,11 @@ export function useIslandOnline(enabled: boolean, onTalk: (t: Talk) => void) {
             talkRef.current({ key: p.key, kind: p.kind, id: p.id as string, uid: ++uid });
           }
         })
+        .on("broadcast", { event: "pose" }, ({ payload }) => {
+          const p = payload as Record<string, unknown>;
+          const o = typeof p?.key === "string" ? map.get(p.key) : undefined;
+          if (o && isPose(p.pose)) o.pose = { id: p.pose, n: (o.pose?.n ?? 0) + 1 };
+        })
         .subscribe((s) => {
           if (s === "SUBSCRIBED") track();
           // A dropped channel (network, a token refresh) joins again on its own, with the same key.
@@ -235,6 +244,13 @@ export function useIslandOnline(enabled: boolean, onTalk: (t: Talk) => void) {
     return true;
   }, []);
 
+  const pose = useCallback((id: Pose) => {
+    const now = Date.now();
+    if (now - last.current.pose < POSE_GAP_MS) return;
+    last.current.pose = now;
+    channel.current?.send({ type: "broadcast", event: "pose", payload: { key: key.current, pose: id } });
+  }, []);
+
   const shuffle = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase || !meRef.current) return;
@@ -267,6 +283,7 @@ export function useIslandOnline(enabled: boolean, onTalk: (t: Talk) => void) {
         setTags([...map].map(([k, v]) => ({ key: k, profile: v.profile })));
       },
       intents: () => [...map].map(([k, o]) => ({ k, seat: o.seat, ride: o.ride, n: o.n, to: o.to })),
+      pose: (i: number, id: Pose) => { const o = map.get(`bot-${i}`); if (o) o.pose = { id, n: (o.pose?.n ?? 0) + 1 }; },
       walk: (i: number, to: XZ) => { const o = map.get(`bot-${i}`); if (o) Object.assign(o, { from: o.to, to, ride: false, seat: null, n: o.n + 1, at: Date.now() }); },
       pause: (on = true) => { paused = on; },
     };
@@ -290,5 +307,5 @@ export function useIslandOnline(enabled: boolean, onTalk: (t: Talk) => void) {
   /** This visitor's presence key (to settle two visitors picking the same seat at once). */
   const myKey = useCallback(() => key.current, []);
 
-  return { status, me, tags, others, signIn, walk, sit, talk, shuffle, myKey };
+  return { status, me, tags, others, signIn, walk, sit, talk, pose, shuffle, myKey };
 }

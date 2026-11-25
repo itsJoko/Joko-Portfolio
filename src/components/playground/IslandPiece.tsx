@@ -7,13 +7,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { PiBell, PiChatCircleDots, PiCursorClick, PiGearSix, PiMapTrifold, PiPersonSimpleWalk, PiPlay, PiTag, PiX, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
+import { PiBell, PiCamera, PiDownloadSimple, PiChatCircleDots, PiCursorClick, PiGearSix, PiMapTrifold, PiPersonSimpleWalk, PiPlay, PiTag, PiX, PiMoon, PiPaperPlaneTilt, PiSpeakerHigh, PiSpeakerSlash, PiSun, PiUsers } from "react-icons/pi";
 import { Turnstile } from "@/components/community/Turnstile";
 import { nameOf, PHRASES, phraseFor, REACTIONS, reactionFor } from "@/lib/community/words";
 import { IslandSound } from "@/lib/island/islandSound";
 import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
+import { POSES, type Pose } from "@/lib/island/poses";
 import type { Action, Mode, Spot } from "./IslandScene";
 // Imported, not linked by path: the build gives it a content-hashed URL, so a re-exported poster is never served
 // from a stale cache (Next 16 keeps optimised images for 4 hours, browsers longer).
@@ -121,8 +122,16 @@ export function IslandPiece() {
   const [spot, setSpot] = useState<Spot>(null);           // standing at the bike rack or the photo spot
   const [riding, setRiding] = useState(false);
   const [action, setAction] = useState<Action | null>(null);
-  const [photoSaved, setPhotoSaved] = useState(false);
-  const act = (kind: Action["kind"]) => setAction((a) => ({ kind, n: (a?.n ?? 0) + 1 }));
+  // The photo just taken (shown over the island, downloaded only on request) and the pose for the next one.
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [pose, setPose] = useState<Pose>("cheer");
+  const act = (kind: Action["kind"]) => setAction((a) => ({ kind, n: (a?.n ?? 0) + 1, pose }));
+  const showPhoto = useCallback((png: Blob) => setPhoto(URL.createObjectURL(png)), []);
+  const closePhoto = () => setPhoto(null);
+  useEffect(() => {
+    if (!photo) return;
+    return () => URL.revokeObjectURL(photo);
+  }, [photo]);
   // Sound: off until the visitor turns it on (made on the first press: browsers only allow sound after a click).
   const sound = useRef<IslandSound | null>(null);
   const [soundOn, setSoundOn] = useState(false);
@@ -146,11 +155,6 @@ export function IslandPiece() {
     window.addEventListener("keydown", down);
     return () => window.removeEventListener("keydown", down);
   }, [riding, pointerIn]);
-  useEffect(() => {
-    if (!photoSaved) return;
-    const id = window.setTimeout(() => setPhotoSaved(false), 3200);
-    return () => window.clearTimeout(id);
-  }, [photoSaved]);
   // Read what this browser remembers once mounted (storage isn't available during server render).
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from browser storage after mount
@@ -272,8 +276,8 @@ export function IslandPiece() {
     if (process.env.NODE_ENV !== "production") (window as unknown as { __islandOnline?: unknown }).__islandOnline = { status: online.status, me: online.me, others: online.tags.length };
   }, [online.status, online.me, online.tags.length]);
   const sceneOnline = useMemo(
-    () => (joined ? { others: online.others, tags: online.tags, tagEls, walk: online.walk, sit: online.sit, myKey: online.myKey } : null),
-    [joined, online.others, online.tags, online.walk, online.sit, online.myKey],
+    () => (joined ? { others: online.others, tags: online.tags, tagEls, walk: online.walk, sit: online.sit, pose: online.pose, myKey: online.myKey } : null),
+    [joined, online.others, online.tags, online.walk, online.sit, online.pose, online.myKey],
   );
   // Settings (the gear): name tags and mouse hints, remembered in this browser. Hints start off, so the island
   // is there to explore; name tags start on.
@@ -345,7 +349,8 @@ export function IslandPiece() {
   const escRef = useRef<() => void>(() => {});
   useEffect(() => {
     escRef.current = () => {
-      if (settingsOpen) setSettingsOpen(false);
+      if (photo) setPhoto(null);
+      else if (settingsOpen) setSettingsOpen(false);
       else if (talkOpen) setTalkOpen(false);
       else exit();
     };
@@ -427,7 +432,7 @@ export function IslandPiece() {
                 onSpot={setSpot}
                 onRide={setRiding}
                 action={action}
-                onPhoto={() => setPhotoSaved(true)}
+                onPhoto={showPhoto}
                 night={night}
                 sound={sound}
                 online={sceneOnline}
@@ -643,11 +648,9 @@ export function IslandPiece() {
             )}
 
             {/* Things to do where Folio stands: take a bike, take a photo; riding, how to ride and park. */}
-            {mode === "walk" && (riding || spot || photoSaved) && (
-              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-bg p-1.5 text-sm text-ink">
-                {photoSaved ? (
-                  <p role="status" className="px-3 py-1">Photo saved to your downloads</p>
-                ) : riding ? (
+            {mode === "walk" && (riding || spot) && !photo && (
+              <div className={`absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap bg-bg p-1.5 text-sm text-ink ${spot === "photo" && !riding ? "max-w-[calc(100%-2rem)] flex-col rounded-3xl sm:flex-row sm:rounded-full" : "rounded-full"}`}>
+                {riding ? (
                   <>
                     <p className="pl-3">{finePointer ? "Click a path to ride, R to ring" : "Tap a path to ride"}</p>
                     {soundOn && (
@@ -664,15 +667,61 @@ export function IslandPiece() {
                     Ride a bike
                   </button>
                 ) : (
-                  <button type="button" onClick={() => act("photo")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
-                    Take a photo
-                  </button>
+                  <>
+                    <div role="group" aria-label="Pose" className="flex gap-1">
+                      {POSES.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          aria-pressed={pose === p.id}
+                          onClick={() => setPose(p.id)}
+                          className={`pressable rounded-full px-3 py-1.5 ${pose === p.id ? "bg-ink text-bg" : "bg-surface text-ink"}`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => act("photo")} className="pressable rounded-full bg-accent px-4 py-1.5 font-medium text-bg">
+                      Take a photo
+                    </button>
+                  </>
                 )}
               </div>
             )}
 
+            {/* The photo just taken: look at it here; download it, take another, or close. */}
+            {photo && (
+              <div role="dialog" aria-label="Your photo" className="absolute inset-0 z-10 grid place-items-center bg-ink/40 p-4">
+                <div className="flex max-h-full w-full max-w-xl flex-col gap-3 rounded-3xl bg-bg p-3 text-sm text-ink">
+                  {/* A blob: URL made here; next/image can't optimise it. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo} alt="Your photo from the Studio island" className="max-h-[70dvh] min-h-0 w-full rounded-2xl object-contain" />
+                  <div className="flex items-center justify-end gap-2">
+                    <button type="button" aria-label="Close" title="Close" onClick={closePhoto} className="pressable grid size-10 place-items-center rounded-full bg-surface text-ink">
+                      <PiX aria-hidden className="size-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Take another"
+                      title="Take another"
+                      onClick={() => {
+                        closePhoto();
+                        act("photo");
+                      }}
+                      className="pressable grid size-10 place-items-center rounded-full bg-surface text-ink"
+                    >
+                      <PiCamera aria-hidden className="size-5" />
+                    </button>
+                    <a href={photo} download="folio-studio-island.png" aria-label="Download" title="Download" className="pressable grid size-10 place-items-center rounded-full bg-accent text-bg">
+                      <PiDownloadSimple aria-hidden className="size-5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* How to move, until the first step; how to get up from a bench. */}
-            {mode === "walk" && (!walked || sitting) && !riding && !spot && !photoSaved && (
+            {mode === "walk" && (!walked || sitting) && !riding && !spot && !photo && (
               <p className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-bg px-4 py-2 text-sm text-ink">
                 {sitting
                   ? `${finePointer ? "Click" : "Tap"} anywhere to get up`

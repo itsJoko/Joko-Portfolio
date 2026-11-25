@@ -8,6 +8,7 @@ import { islandLandmarks, type LandmarkId } from "@/content/island";
 import { canStand, findPath, loadNav, nearestWalkable, rideGrid, toCell, toPoint, type NavGrid, type Point } from "@/lib/island/nav";
 import type { IslandSound } from "@/lib/island/islandSound";
 import type { OtherIntent, OtherTag, Seat, XZ } from "@/lib/island/useIslandOnline";
+import type { Pose } from "@/lib/island/poses";
 import { ToyWorld } from "@/lib/island/toyPhysics";
 import { IslandAmbience } from "./IslandAmbience";
 import { IslandFolio, RIDE_LIFT, SEAT_HEIGHT, type WalkerState } from "./IslandFolio";
@@ -39,11 +40,18 @@ const REGROUND = 1.0;     // first frame or getting up: look for the floor from 
 const RIDE_SPEED = 6.2;   // m/s on a bike
 const SADDLE_BACK = 0.22; // the saddle sits this far behind the bike's origin (between the wheels)
 const BIKE_MOVE = 0.4;    // seconds a bike takes to roll out of the rack to Folio, or back
-const SPOT_NEAR = 0.8;    // standing this close to the bike door or the photo spot offers its button
+const SPOT_NEAR = 0.8;    // standing this close to the bike door offers its button
+const PHOTO_NEAR = 0.4;   // standing this close to one of the photo slots offers Take a photo
 const PHOTO_FOV = 50;
+// The photo is always this size and shape (a phone's tall screen would crop the frame to one Folio's width).
+const PHOTO_W = 1440, PHOTO_H = 1080;
+// Up to three Folios fit the frame: the middle, then the left and right (a step forward, in front of the posts).
+const PHOTO_SLOTS: [number, number][] = [[0, 0], [-0.92, 0.5], [0.92, 0.5]];   // [sideways, towards the camera] (m)
+const POSE_MS = 1300;     // how long a pose lasts
+const PHOTO_AREA = 1.6;   // a Folio this close to the frame's middle is in the picture (counted in the caption)
 
 export type Spot = "bikes" | "photo" | null;
-export type Action = { kind: "ride" | "park" | "photo"; n: number };
+export type Action = { kind: "ride" | "park" | "photo"; n: number; pose?: Pose };
 
 export type Mode = "overview" | "walk";
 
@@ -81,8 +89,8 @@ export type SceneProps = {
   onRide: (riding: boolean) => void;
   /** A button under the island: take a bike, park it, take a photo; n changes on every press. */
   action: Action | null;
-  /** A photo was taken (the PNG has been handed to the browser to save). */
-  onPhoto: () => void;
+  /** A photo was taken: the framed PNG, for IslandPiece to show (and offer to download). */
+  onPhoto: (photo: Blob) => void;
   /** The site is in dark mode: evening on the island. */
   night: boolean;
   /** The soundscape, when the visitor has turned it on (IslandPiece owns it); told where Folio is each frame. */
@@ -102,6 +110,7 @@ export type Online = {
   tagEls: RefObject<Map<string, HTMLElement>>;
   walk: (from: XZ, to: XZ, ride: boolean) => void;
   sit: (seat: Seat | null) => void;
+  pose: (id: Pose) => void;
   myKey: () => string;
 };
 // Name colours (Community's tag-dot colours), worn on the folded corner of other visitors' Folios.
@@ -112,14 +121,14 @@ const TAG_HEX: Record<string, string> = {
 const MAX_OTHERS = 20;     // drawn; more are only counted
 const tmpSeat = new THREE.Vector3();
 const TAG_NEAR = 7;        // others' name tags show within this distance of your Folio (m)
-type OtherAnim = { walker: RefObject<WalkerState>; route: Point[]; n: number; placed: boolean; foot: number; bike: THREE.Object3D | null };
+type OtherAnim = { walker: RefObject<WalkerState>; route: Point[]; n: number; placed: boolean; foot: number; bike: THREE.Object3D | null; poseN: number };
 
 /** Another visitor's Folio: it registers its walker with the scene, which moves it each frame. */
 function OtherFolio({ id, colour, registry }: { id: string; colour: string; registry: RefObject<Map<string, OtherAnim>> }) {
   const walker = useRef<WalkerState>({ pos: new THREE.Vector3(0, -50, 0), yaw: 0, speed: 0, sit: 0, ride: 0, cheerUntil: 0 });
   useEffect(() => {
     const map = registry.current;
-    map.set(id, { walker, route: [], n: -1, placed: false, foot: 0, bike: null });
+    map.set(id, { walker, route: [], n: -1, placed: false, foot: 0, bike: null, poseN: 0 });
     return () => {
       const a = map.get(id);
       a?.bike?.removeFromParent();
@@ -145,16 +154,16 @@ function nameOf(o: THREE.Object3D) {
 
 /**
  * The photo spot's picture: the render on a soft sky (the canvas is transparent), in a paper border with a
- * caption, handed to the browser to save as a PNG.
+ * caption (folios: how many stood in the frame). IslandPiece shows it and offers the download.
  */
-async function savePhoto(shot: Blob) {
+async function framePhoto(shot: Blob, folios: number) {
   const img = await createImageBitmap(shot);
   const pad = Math.round(img.width * 0.035), base = Math.round(img.width * 0.1);
   const c = document.createElement("canvas");
   c.width = img.width + pad * 2;
   c.height = img.height + pad + base;
   const x = c.getContext("2d");
-  if (!x) return;
+  if (!x) return null;
   x.fillStyle = "#FBF7EE";
   x.fillRect(0, 0, c.width, c.height);
   const sky = x.createLinearGradient(0, pad, 0, pad + img.height);
@@ -166,15 +175,9 @@ async function savePhoto(shot: Blob) {
   x.fillStyle = "#3B352D";
   x.font = `600 ${Math.round(base * 0.3)}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
   x.textBaseline = "middle";
-  x.fillText("Folio on the Studio island", pad, pad + img.height + base / 2);
-  const png = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
-  if (!png) return;
-  const url = URL.createObjectURL(png);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "folio-studio-island.png";
-  a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  x.fillText(folios > 1 ? `${folios} Folios on the Studio island` : "Folio on the Studio island", pad, pad + img.height + base / 2);
+  img.close();
+  return new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
 }
 
 const KEYS: Record<string, [number, number]> = {
@@ -296,6 +299,13 @@ function World(props: SceneProps) {
     const photoSpot = root.getObjectByName("door_photo")?.getWorldPosition(new THREE.Vector3()) ?? null;
     const photoCam = root.getObjectByName("cam_photo")?.getWorldPosition(new THREE.Vector3()) ?? null;
     if (photoSpot) root.getObjectByName("block_photo_frame")?.traverse((c) => (c.userData.photo = true));
+    // Where up to three Folios stand for a picture (PHOTO_SLOTS, along the frame and towards its camera).
+    const photoSlots: THREE.Vector3[] = [];
+    if (photoSpot && photoCam) {
+      const fwd = new THREE.Vector3(photoCam.x - photoSpot.x, 0, photoCam.z - photoSpot.z).normalize();
+      const side = new THREE.Vector3(fwd.z, 0, -fwd.x);
+      for (const [a, b] of PHOTO_SLOTS) photoSlots.push(photoSpot.clone().addScaledVector(side, a).addScaledVector(fwd, b));
+    }
 
     // The lake, for the sound of water (its middle and rough radius).
     const pond = root.getObjectByName("water_pond");
@@ -304,7 +314,7 @@ function World(props: SceneProps) {
 
     const spawn = root.getObjectByName("spawn")?.getWorldPosition(new THREE.Vector3()) ?? new THREE.Vector3();
     const toys = root.children.filter((o) => /^phys_/.test(o.name));
-    return { root, marks, floors, decks, spawn, benches, fire, flames, planes, toys, bikes, doorBikes, photoSpot, photoCam, lake };
+    return { root, marks, floors, decks, spawn, benches, fire, flames, planes, toys, bikes, doorBikes, photoSpot, photoCam, photoSlots, lake };
   }, [scene]);
   const { root, marks, benches, fire } = island;
   // Effects and frames reach the island through this ref: they move its objects, which render must not.
@@ -474,14 +484,28 @@ function World(props: SceneProps) {
     walkTo({ x: doorBikes.x, z: doorBikes.z }, false);
     ride.current.parking = true;
   };
-  /** Standing in the photo frame: turn to the camera, cheer, and take the picture a moment later. */
-  const takePhoto = () => {
-    const { photoSpot, photoCam } = live.current;
+  /** The photo slot a visitor's destination is, or -1. */
+  const slotAt = (x: number, z: number) =>
+    live.current.photoSlots.findIndex((p) => Math.hypot(p.x - x, p.z - z) < PHOTO_NEAR);
+  /** The first photo slot no other visitor stands in or is walking to (the middle if all three are taken). */
+  const freeSlot = () => {
+    const { photoSlots } = live.current;
+    const taken = new Set<number>();
+    onlineRef.current?.others.current?.forEach((o) => {
+      if (!o.seat && !o.ride) taken.add(slotAt(o.to[0], o.to[1]));
+    });
+    return photoSlots.find((_, i) => !taken.has(i)) ?? photoSlots[0];
+  };
+  /** Standing in the photo frame: turn to the camera, strike the pose, and take the picture a moment later. */
+  const takePhoto = (pose: Pose = "cheer") => {
+    const { photoCam } = live.current;
     const w = walker.current;
-    if (!photoSpot || !photoCam || Math.hypot(photoSpot.x - w.pos.x, photoSpot.z - w.pos.z) > SPOT_NEAR) return;
+    if (!photoCam || slotAt(w.pos.x, w.pos.z) < 0) return;
     route.current = [];
     w.yaw = Math.atan2(photoCam.x - w.pos.x, photoCam.z - w.pos.z);
-    w.cheerUntil = performance.now() + 1300;
+    w.pose = pose;
+    w.cheerUntil = performance.now() + POSE_MS;
+    onlineRef.current?.pose(pose);
     photoAt.current = performance.now() + 420;   // mid-hop, arms up
     invalidate();
   };
@@ -490,7 +514,7 @@ function World(props: SceneProps) {
     if (!action) return;
     if (action.kind === "ride") takeBike(0);
     else if (action.kind === "park") parkBike();
-    else takePhoto();
+    else takePhoto(action.pose);
     // The helpers read refs only; run once per press.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action]);
@@ -517,7 +541,8 @@ function World(props: SceneProps) {
       goto: (x: number, z: number) => walkTo({ x, z }),
       bike: () => takeBike(0),
       park: () => parkBike(),
-      photo: () => takePhoto(),
+      photo: (pose?: Pose) => takePhoto(pose),
+      photoSlots: () => live.current.photoSlots.map((p) => [+p.x.toFixed(2), +p.z.toFixed(2)]),
       riding: () => ({ on: ride.current.on, pending: ride.current.pending, parking: ride.current.parking, spot: spot.current, ride: walker.current.ride }),
       walkableCells: () => nav.current?.rows.reduce((n, r) => n + r.split("1").length - 1, 0) ?? 0,
       toys: () => toys.current?.bodies.map((b) => ({ name: b.obj.name, awake: b.awake, x: +b.pos.x.toFixed(2), y: +b.pos.y.toFixed(2), z: +b.pos.z.toFixed(2), home: +b.pos.distanceTo(b.home.pos).toFixed(2) })) ?? [],
@@ -720,7 +745,7 @@ function World(props: SceneProps) {
       sc.pending = null;
     }
     // ---- bikes: at the rack, hop on (the bike rolls out to Folio) or park (it rolls home)
-    const { bikes, doorBikes, photoSpot } = live.current;
+    const { bikes, doorBikes, photoSpot, photoCam: photoEye } = live.current;
     if ((rd.pending !== null || rd.parking) && !route.current.length && !moving) {
       if (doorBikes && Math.hypot(doorBikes.x - w.pos.x, doorBikes.z - w.pos.z) < 0.6) {
         const index = rd.pending ?? rd.on;
@@ -805,11 +830,12 @@ function World(props: SceneProps) {
     }
     if (performance.now() < w.cheerUntil) busy = true;
 
-    // ---- standing still for a moment, Folio turns to face you
+    // ---- standing still for a moment, Folio turns to face you (in the photo frame, its camera; not mid-pose)
     if (!moving && sc.on === null && sc.pending === null && rd.on === null && w.speed < 0.05) {
       tmp.idle += dt;
-      if (tmp.idle > 0.5 && mode === "walk") {
-        let turn = Math.atan2(camera.position.x - w.pos.x, camera.position.z - w.pos.z) - w.yaw;
+      if (tmp.idle > 0.5 && mode === "walk" && performance.now() >= w.cheerUntil) {
+        const eye = photoEye && slotAt(w.pos.x, w.pos.z) >= 0 ? photoEye : camera.position;
+        let turn = Math.atan2(eye.x - w.pos.x, eye.z - w.pos.z) - w.yaw;
         turn = Math.atan2(Math.sin(turn), Math.cos(turn));
         if (Math.abs(turn) > 0.01) {
           w.yaw += turn * (1 - Math.exp(-4 * dt));
@@ -824,7 +850,7 @@ function World(props: SceneProps) {
     let sp: Spot = null;
     if (mode === "walk" && sc.on === null && rd.on === null && rd.pending === null && !moving) {
       if (doorBikes && bikes.length && Math.hypot(doorBikes.x - w.pos.x, doorBikes.z - w.pos.z) < SPOT_NEAR) sp = "bikes";
-      if (photoSpot && Math.hypot(photoSpot.x - w.pos.x, photoSpot.z - w.pos.z) < SPOT_NEAR) sp = "photo";
+      if (slotAt(w.pos.x, w.pos.z) >= 0) sp = "photo";
     }
     if (sp !== spot.current) {
       spot.current = sp;
@@ -1018,6 +1044,22 @@ function World(props: SceneProps) {
           }
         }
         const om = ox !== 0 || oz !== 0;
+        // A pose they struck at the photo spot: their Folio turns to the photo camera and plays it here too.
+        if (o.pose && o.pose.n !== a.poseN) {
+          a.poseN = o.pose.n;
+          ow.pose = o.pose.id;
+          ow.cheerUntil = performance.now() + POSE_MS;
+        }
+        const posing = performance.now() < ow.cheerUntil;
+        if (posing) busy = true;
+        if (!om && !st && photoEye && (posing || slotAt(ow.pos.x, ow.pos.z) >= 0)) {
+          let turn = Math.atan2(photoEye.x - ow.pos.x, photoEye.z - ow.pos.z) - ow.yaw;
+          turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+          if (Math.abs(turn) > 0.01) {
+            ow.yaw += turn * (posing ? 1 : 1 - Math.exp(-4 * dt));
+            busy = true;
+          }
+        }
         ow.speed = THREE.MathUtils.damp(ow.speed, om ? (riding ? RIDE_SPEED : SPEED) : 0, riding ? 4 : 10, dt);
         if (om) {
           ow.pos.x += ox * ow.speed * dt;
@@ -1073,13 +1115,14 @@ function World(props: SceneProps) {
       fire: fire ? { x: fire.x, z: fire.z, lit: fireOn.current } : null, lake: live.current.lake,
     });
 
-    // ---- the photo: one render from cam_photo through the frame, saved as a PNG with a paper border
+    // ---- the photo: one render from cam_photo through the frame, always PHOTO_W x PHOTO_H whatever the screen's
+    // shape, framed with a paper border and handed to IslandPiece
     const { photoCam } = live.current;
     if (photoAt.current && photoSpot && photoCam) {
       if (performance.now() >= photoAt.current) {
         photoAt.current = 0;
         const cam = tmp.photoCam;
-        cam.aspect = size.width / Math.max(size.height, 1);
+        cam.aspect = PHOTO_W / PHOTO_H;
         cam.updateProjectionMatrix();
         cam.position.copy(photoCam);
         cam.lookAt(photoSpot.x, photoSpot.y + 1.55, photoSpot.z);   // the whole frame, its sign included
@@ -1090,9 +1133,23 @@ function World(props: SceneProps) {
           fog.near = 60;
           fog.far = 160;
         }
-        state.gl.render(state.scene, cam);
-        // Read now: the drawing buffer is only valid until this frame is shown.
-        state.gl.domElement.toBlob((blob) => blob && savePhoto(blob).then(onPhoto));
+        // Who stands in the frame (you, and anyone in one of the slots), for the caption.
+        let folios = 1;
+        registry.current.forEach((a) => {
+          const p = a.walker.current.pos;
+          if (Math.hypot(p.x - photoSpot.x, p.z - photoSpot.z) < PHOTO_AREA) folios++;
+        });
+        // The drawing buffer at the photo's size for this one render (the canvas's CSS size stays, so nothing
+        // on screen moves), read at once (it is only valid until this frame is shown), then back.
+        const gl = state.gl, dpr = gl.getPixelRatio();
+        gl.setPixelRatio(1);
+        gl.setSize(PHOTO_W, PHOTO_H, false);
+        gl.render(state.scene, cam);
+        gl.domElement.toBlob((blob) => {
+          if (blob) void framePhoto(blob, Math.min(folios, PHOTO_SLOTS.length)).then((png) => png && onPhoto(png));
+        });
+        gl.setPixelRatio(dpr);
+        gl.setSize(size.width, size.height, false);
         if (fog && keep) [fog.near, fog.far] = keep;
       }
       busy = true;
@@ -1150,8 +1207,9 @@ function World(props: SceneProps) {
           if (u.bike !== undefined) {
             if (riding) parkBike();          // back at the rack: park
             else takeBike(u.bike);
-          } else if (u.photo && !riding && live.current.photoSpot) {
-            walkTo({ x: live.current.photoSpot.x, z: live.current.photoSpot.z });
+          } else if (u.photo && !riding && live.current.photoSlots.length) {
+            const slot = freeSlot();
+            walkTo({ x: slot.x, z: slot.z });
           } else if (riding && !u.landmark) {
             walkTo({ x: e.point.x, z: e.point.z });   // on a bike, benches and the fire are just places to ride to
           } else if (u.landmark) {
