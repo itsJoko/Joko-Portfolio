@@ -15,6 +15,9 @@ import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
 import type { Action, Mode, Spot } from "./IslandScene";
+// Imported, not linked by path: the build gives it a content-hashed URL, so a re-exported poster is never served
+// from a stale cache (Next 16 keeps optimised images for 4 hours, browsers longer).
+import posterImage from "../../../public/playground/island-poster.webp";
 
 gsap.registerPlugin(useGSAP);
 
@@ -54,7 +57,7 @@ function hasWebGL() {
 /** A still of the island, rendered in Blender: shown while the scene loads, and instead of it for reduced motion or no WebGL. */
 function Poster() {
   return (
-    <Image src="/playground/island-poster.webp" alt="" fill sizes="(min-width: 64rem) 60rem, 100vw" className="object-contain" priority />
+    <Image src={posterImage} alt="" fill sizes="(min-width: 64rem) 60rem, 100vw" className="object-contain" priority />
   );
 }
 
@@ -359,8 +362,8 @@ export function IslandPiece() {
       <div
         className={
           game
-            ? "fixed inset-0 z-[80] h-dvh w-full overflow-hidden bg-bg"
-            : "relative aspect-[4/5] w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
+            ? "fixed inset-0 z-80 h-dvh w-full overflow-hidden bg-bg"
+            : "relative aspect-4/5 w-full overflow-hidden sm:aspect-auto sm:h-[clamp(30rem,calc(100svh-8rem),52rem)]"
         }
         data-lenis-prevent={game ? "" : undefined}
         role={game ? "dialog" : undefined}
@@ -375,11 +378,11 @@ export function IslandPiece() {
           <div
             ref={transitionRef}
             aria-hidden
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink text-bg"
+            className="fixed inset-0 z-100 flex items-center justify-center bg-ink text-bg"
           >
             <p
               ref={transitionTextRef}
-              className={`${gameFont.className} text-balance px-6 text-center text-[clamp(2.5rem,8vw,5.5rem)] font-bold leading-[1] tracking-[-0.03em]`}
+              className={`${gameFont.className} text-balance px-6 text-center text-[clamp(2.5rem,8vw,5.5rem)] font-bold leading-none tracking-[-0.03em]`}
             >
               {transitionPhase === "enter" ? "Studio Island" : "Back to Playground"}
             </p>
@@ -392,7 +395,7 @@ export function IslandPiece() {
                 fades while the camera swoops down to Folio. */}
             <div
               aria-hidden
-              className={`absolute inset-0 z-[60] flex flex-col items-center justify-center bg-bg transition-opacity duration-700 ease-[var(--ease-out)] ${
+              className={`absolute inset-0 z-60 flex flex-col items-center justify-center bg-bg transition-opacity duration-700 ease-out ${
                 ready ? "pointer-events-none opacity-0" : "opacity-100"
               }`}
             >
@@ -694,7 +697,7 @@ export function IslandPiece() {
             <Poster />
             {/* The title card. Nothing 3D loads until Press start (and the page scrolls freely meanwhile). */}
             {live && (
-              <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-bg from-15% via-bg/60 via-45% to-transparent to-80% px-4 pb-10 text-center sm:pb-14">
+              <div className="absolute inset-0 flex flex-col items-center justify-end bg-linear-to-t from-bg from-15% via-bg/60 via-45% to-transparent to-80% px-4 pb-10 text-center sm:pb-14">
                 <p aria-hidden className={`${gameFont.className} text-balance text-[clamp(2.75rem,9vw,5.5rem)] font-bold leading-[1.1] tracking-[-0.02em] text-ink`}>
                   Studio Island
                 </p>

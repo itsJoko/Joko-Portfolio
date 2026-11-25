@@ -6,7 +6,8 @@ Writes, from the "island" collection only (the preview camera and sun are not ex
   attribute) as vertex colours, packed to 8 bits by pack_colors.mjs (needs Node and `npm install`).
   The site loads it with useGLTF(url, false, true).
 - public/playground/island-lite.glb: the phone and weak-device version: no flowers, grass tufts or path stones,
-  and trees, bushes, the garden, fences, benches, lamps and the studio simplified (Decimate, only while exporting).
+  and the busiest meshes simplified (Decimate, only while exporting). A mesh that would lose more than 3% of its
+  surface (thin planks, rails, box sides) is kept at full detail instead; "lite_kept_full" counts them.
 - public/playground/island-poster.webp: the still for reduced motion, no WebGL and while loading.
 Then saves the .blend.
 """
@@ -45,6 +46,17 @@ for o in lite:
     ratio = next((r for k, r in SIMPLIFY.items() if o.name.startswith(k)), None)
     if ratio and o.type == "MESH":
         m = o.modifiers.new("lite_decimate", "DECIMATE"); m.ratio = ratio; added.append((o, m))
+# Decimate collapses small boxy pieces (bench planks, fence rails, crate sides) into nothing. Keep the
+# simplification only where the mesh keeps nearly all of its surface; everything else ships at full detail.
+def area(me):
+    return sum(p.area for p in me.polygons)
+dg = bpy.context.evaluated_depsgraph_get(); dg.update()
+KEPT_FULL = []
+for o, m in list(added):
+    ev = o.evaluated_get(dg); me = ev.to_mesh(); after = area(me); ev.to_mesh_clear()
+    before = area(o.data)
+    if before > 0 and after / before < 0.97:
+        o.modifiers.remove(m); added.remove((o, m)); KEPT_FULL.append(o.name)
 export(LITE, set(lite))
 def tris(objs, evaluated):
     dg = bpy.context.evaluated_depsgraph_get(); n = 0
@@ -101,5 +113,6 @@ for nt, ca, mix in temp:
 
 bpy.ops.wm.save_mainfile()
 EXPORTED = {"glb_kb": round(os.path.getsize(GLB) / 1024), "lite_kb": round(os.path.getsize(LITE) / 1024),
-            "poster_kb": round(os.path.getsize(POSTER) / 1024), "tris": full_tris, "lite_tris": lite_tris, "packed": PACKED}
+            "poster_kb": round(os.path.getsize(POSTER) / 1024), "tris": full_tris, "lite_tris": lite_tris, "packed": PACKED,
+            "lite_kept_full": len(KEPT_FULL)}
 print("Exported:", EXPORTED)
