@@ -14,6 +14,8 @@ import { IslandSound } from "@/lib/island/islandSound";
 import { useIslandOnline, type Talk } from "@/lib/island/useIslandOnline";
 import { islandLandmarks, planeFacts, type Landmark, type LandmarkId } from "@/content/island";
 import { cssVar, useThemeClass } from "@/lib/useThemeClass";
+import { switchTheme } from "@/lib/themeTransition";
+import { useTheme } from "next-themes";
 import { POSES, type Pose } from "@/lib/island/poses";
 import type { Action, Mode, Spot } from "./IslandScene";
 // Imported, not linked by path: the build gives it a content-hashed URL, so a re-exported poster is never served
@@ -196,9 +198,10 @@ export function IslandPiece() {
   );
   const theme = useThemeClass();
   const fogColor = useMemo(() => (theme ? cssVar("--bg") || "#000000" : "#000000"), [theme]);
-  // The island's time of day: the site theme until the visitor picks day or evening with the island's own button.
-  const [islandNight, setIslandNight] = useState<boolean | null>(null);
-  const night = islandNight ?? theme === "dark";
+  // The island's time of day is the site's theme: evening in dark mode. The island's Evening switch changes the
+  // site's theme, so the two never disagree.
+  const { setTheme } = useTheme();
+  const night = theme === "dark";
   const live = webgl && !reducedMotion;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [talkOpen, setTalkOpen] = useState(false);
@@ -553,9 +556,12 @@ export function IslandPiece() {
                     type="button"
                     role="switch"
                     aria-checked={on}
-                    onClick={() => {
+                    onClick={(e) => {
                       if (id === "sound") toggleSound();
-                      else if (id === "evening") setIslandNight(!night);
+                      else if (id === "evening") {
+                        const box = e.currentTarget.getBoundingClientRect();
+                        switchTheme(night ? "light" : "dark", setTheme, { x: box.right - 28, y: box.top + box.height / 2 });
+                      }
                       else setPref(id, !prefs[id]);
                     }}
                     className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm hover:bg-surface"

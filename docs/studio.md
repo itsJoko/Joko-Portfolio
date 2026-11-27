@@ -339,8 +339,9 @@ exec(open(r"C:/Projects/joko-portfolio/art/island/export_island.py").read())  # 
   `ToyWorld.impacts`), quieter far away. Everything with bite uses white noise: pink noise has almost nothing
   above 1 kHz, which first left the fire, steps and water inaudible under the wind. Quiet while the tab is
   hidden.
-- [x] The island's own day / evening button (sun and moon, top right): starts on the site theme, then sets the
-  island's time of day without changing the site's.
+- [x] The island's Evening switch (in the settings menu) is the site's theme switch: turning it on puts the
+  whole site in dark mode, off in light mode, so the island and the site always match (changed 2026-11-19; it
+  used to set the island's time of day on its own).
 - [x] Joko's hand changes kept through the rebuild: 8 moves (the bike rack and bikes, the picnic table, a tree,
   a rock, a boulder) and a new knock-over stack by the notice board (`phys_crate_07–09`, `phys_barrel_04–05`).
 
